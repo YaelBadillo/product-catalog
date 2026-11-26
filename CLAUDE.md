@@ -77,7 +77,7 @@ The constitution (`.specify/memory/constitution.md`) prevails over every CLAUDE.
 - A feature is done only when all tests, formatting, lint and typecheck pass.
 
 ### Docs stay in sync
-Every change includes, in the same commit/PR, updates to whatever it affects: `openapi.yaml`, specs, README, CLAUDE.md files, constitution, `.env.example`, generated code (`make sqlc`, `make gen-types`). A change without its docs is incomplete.
+Every change includes, in the same commit/PR, updates to whatever it affects: `openapi.yaml`, specs, README (`README.md` in Spanish, the main one, and `README.en.md`, kept in sync), CLAUDE.md files, constitution, `.env.example`, generated code (`make sqlc`, `make gen-types`). A change without its docs is incomplete.
 
 ### Code and commits
 - SOLID, separation of concerns, small functions, no duplication. Tooling and style rules per side are in the side's CLAUDE.md.
