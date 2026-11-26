@@ -108,3 +108,25 @@ func TestStartupAppliesMigrations(t *testing.T) {
 		"SELECT to_regclass('products') IS NOT NULL").Scan(&exists))
 	assert.True(t, exists, "migrations run at startup")
 }
+
+func countProducts(t *testing.T, pool *pgxpool.Pool) int {
+	t.Helper()
+	var n int
+	require.NoError(t, pool.QueryRow(t.Context(), "SELECT count(*) FROM products WHERE deleted_at IS NULL").Scan(&n))
+	return n
+}
+
+func TestSeedIsIdempotent(t *testing.T) {
+	testutil.RequireDSN(t, dsn)
+	pool, err := testutil.NewMigratedPool(t.Context(), dsn)
+	require.NoError(t, err)
+	t.Cleanup(pool.Close)
+	testutil.ResetDB(t, pool)
+	bin := buildBinary(t)
+
+	for run := 1; run <= 2; run++ {
+		out, err := command(t, bin, freePort(t), "seed").CombinedOutput()
+		require.NoError(t, err, "run %d: %s", run, out)
+		assert.Equal(t, 20, countProducts(t, pool), "run %d", run)
+	}
+}

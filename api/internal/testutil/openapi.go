@@ -100,7 +100,14 @@ func contractRouter(t TestingT) routers.Router {
 	return contract.router
 }
 
+// documentTypes are bodies the contract describes as a plain string (the
+// /docs page and the contract itself), so they are validated as text.
+var documentTypes = []string{"text/html", "application/yaml"}
+
 func loadContract() (routers.Router, error) {
+	for _, contentType := range documentTypes {
+		openapi3filter.RegisterBodyDecoder(contentType, openapi3filter.PlainBodyDecoder)
+	}
 	path, err := contractPath()
 	if err != nil {
 		return nil, err

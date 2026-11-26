@@ -1,5 +1,6 @@
 // Command api starts the Product Catalog HTTP API. Run as `api healthcheck`,
-// it probes the local /healthz instead and exits 0 or 1.
+// it probes the local /healthz instead and exits 0 or 1; as `api seed`, it
+// migrates and loads the sample products.
 package main
 
 import (
@@ -22,6 +23,7 @@ import (
 	"github.com/YaelBadillo/product-catalog/api/internal/httpapi/middleware"
 	"github.com/YaelBadillo/product-catalog/api/internal/migrate"
 	"github.com/YaelBadillo/product-catalog/api/internal/repository"
+	"github.com/YaelBadillo/product-catalog/api/internal/seed"
 	"github.com/YaelBadillo/product-catalog/api/internal/service"
 )
 
@@ -42,6 +44,14 @@ func main() {
 		return
 	}
 
+	if len(os.Args) > 1 && os.Args[1] == "seed" {
+		if err := runSeed(logger); err != nil {
+			logger.Error("seed failed", "error", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if err := run(logger); err != nil {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
@@ -56,6 +66,32 @@ func runHealthcheck() error {
 	ctx, cancel := context.WithTimeout(context.Background(), healthcheckTimeout)
 	defer cancel()
 	return healthcheck.Check(ctx, fmt.Sprintf("http://127.0.0.1:%d/healthz", cfg.Port))
+}
+
+// runSeed migrates and creates the sample products through the service, so
+// they follow every rule. Products whose SKU already exists are skipped.
+func runSeed(logger *slog.Logger) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("create database pool: %w", err)
+	}
+	defer pool.Close()
+	if err := migrate.Up(ctx, pool, migrate.Options{}); err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	created, err := seed.Run(ctx, service.NewProducts(repository.NewProducts(pool)))
+	if err != nil {
+		return err
+	}
+	logger.Info("seed done", "created", created)
+	return nil
 }
 
 func run(logger *slog.Logger) error {

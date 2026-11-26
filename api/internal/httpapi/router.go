@@ -10,6 +10,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
+	"github.com/YaelBadillo/product-catalog/api/internal/apidocs"
 	"github.com/YaelBadillo/product-catalog/api/internal/httpapi/handler"
 	"github.com/YaelBadillo/product-catalog/api/internal/httpapi/middleware"
 )
@@ -30,7 +31,7 @@ type RouterConfig struct {
 }
 
 // NewRouter builds the Gin engine with the middleware and every route. The
-// health probes live at the root; each api registrar adds its routes to the
+// health probes and /docs live at the root; each api registrar adds its routes to the
 // /api/v1 group, which is rate-limited and body-limited.
 func NewRouter(logger *slog.Logger, cfg RouterConfig, health *handler.Health, api ...func(*gin.RouterGroup)) *gin.Engine {
 	router := gin.New()
@@ -55,6 +56,7 @@ func NewRouter(logger *slog.Logger, cfg RouterConfig, health *handler.Health, ap
 
 	router.GET("/healthz", health.Live)
 	router.GET("/readyz", health.Ready)
+	apidocs.Register(router)
 
 	limiter := cfg.RateLimiter
 	if limiter == nil {
