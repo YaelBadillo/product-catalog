@@ -13,7 +13,7 @@ WEB_DIR := web
 go_tool = cd $(API_DIR) && go tool -modfile=tools/$(1).mod $(1)
 
 .DEFAULT_GOAL := help
-.PHONY: help up down db dev-api dev-web test test-unit test-api test-web \
+.PHONY: help up down db dev-api dev-web seed test test-unit test-api test-web \
 	lint lint-api lint-web fmt gen-types sqlc sync-openapi migrate-new
 
 help: ## List the available commands
@@ -36,6 +36,9 @@ dev-api: ## Run the API locally with go run (needs `make db`)
 
 dev-web: ## Run the web dev server (Vite)
 	pnpm -C $(WEB_DIR) dev
+
+seed: ## Load 20 sample products (migrates first; reruns create no duplicates)
+	cd $(API_DIR) && go run ./cmd/api seed
 
 ##@ Tests
 test: test-api test-web ## Run every test
