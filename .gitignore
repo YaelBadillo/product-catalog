@@ -1,2 +1,5 @@
 # Local environment (secrets never go in the repo)
 .env
+
+# Personal Claude Code settings
+.claude/settings.local.json
