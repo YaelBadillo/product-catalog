@@ -468,7 +468,7 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
   - the 20 products pass the domain rules;
   - they cover all 5 categories, both currencies and at least 4 inactive products, and include names with accents and ñ;
   - a second `Run` skips `ErrSKUAlreadyExists` without returning an error (R15).
-- [ ] T109 Extend api/cmd/api/main_test.go: `api seed` against a fresh container exits 0 and leaves 20 products, and a second run also exits 0 and still leaves 20 (R15)
+- [ ] T109 Extend api/cmd/api/main_test.go: after `testutil.ResetDB` on the package's container, `api seed` exits 0 and leaves 20 products, and a second run also exits 0 and still leaves 20 (R15)
 - [ ] T110 Implement api/internal/seed/products.go and api/internal/seed/seed.go (`Run(ctx, creator)`), the `seed` subcommand in api/cmd/api/main.go (migrate → repository → service → `seed.Run`), and the `seed` target in Makefile (`cd $(API_DIR) && go run ./cmd/api seed`, with a `##` description)
 - [ ] T111 [P] Write tests in api/internal/apidocs/apidocs_test.go:
   - `GET /docs` → 200 `text/html`, with its own CSP allowing `cdn.jsdelivr.net` and `swagger-ui-dist` pinned with `integrity`;
@@ -483,7 +483,9 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
   - `decodeJSON` with an injected validator instead of `ShouldBindJSON` (C5), and the domain owning normalization (C3);
   - startup migrations with retry (C4);
   - `CLIENT_IP_HEADER`;
-  - packages `migrate`, `seed`, `apidocs`, and the new `testutil` helpers.
+  - packages `migrate`, `seed`, `apidocs`, and the new `testutil` helpers;
+  - routes: `NewRouter` mounts `api ...func(*gin.RouterGroup)` registrars on `/api/v1`, and each handler exposes `Register`;
+  - testing: black-box tests in api/cmd/api/main_test.go build and run the binary (startup migrations, `seed`).
 - [ ] T116 [P] Update web/CLAUDE.md:
   - UI copy in es-MX addressing the user as tú (`messages.ts`);
   - price "entered in currency units";
@@ -491,7 +493,7 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
   - routes (`products`, `status` at `/status`);
   - optimistic updates for delete only (C7);
   - the responsive list (C6);
-  - `renderRoute` in Testing.
+  - in Testing: `renderRoute`, and `axe` imported from `src/test/axe.ts` (WCAG 2.2 AA tags) instead of from `vitest-axe`.
 - [ ] T117 [P] Update README.md:
   - endpoints and `/docs`;
   - `make seed`;
