@@ -47,3 +47,22 @@ WHERE deleted_at IS NULL
   AND (sqlc.narg(pattern)::text IS NULL
     OR catalog_fold(name) LIKE '%' || catalog_fold(sqlc.narg(pattern)::text) || '%' ESCAPE '\'
     OR catalog_fold(sku) LIKE '%' || catalog_fold(sqlc.narg(pattern)::text) || '%' ESCAPE '\');
+
+-- name: UpdateProduct :one
+-- Changes only the given fields, and only if the version still matches.
+-- description_set distinguishes "remove the description" (NULL) from "keep it".
+UPDATE products SET
+    name        = COALESCE(sqlc.narg(name)::text, name),
+    description = CASE WHEN @description_set::boolean THEN sqlc.narg(description)::text ELSE description END,
+    price_cents = COALESCE(sqlc.narg(price_cents)::bigint, price_cents),
+    currency    = COALESCE(sqlc.narg(currency)::text, currency),
+    stock       = COALESCE(sqlc.narg(stock)::integer, stock),
+    category    = COALESCE(sqlc.narg(category)::text, category),
+    is_active   = COALESCE(sqlc.narg(is_active)::boolean, is_active),
+    version     = version + 1,
+    updated_at  = now()
+WHERE id = @id AND version = @version AND deleted_at IS NULL
+RETURNING *;
+
+-- name: ProductExists :one
+SELECT EXISTS (SELECT 1 FROM products WHERE id = @id AND deleted_at IS NULL);

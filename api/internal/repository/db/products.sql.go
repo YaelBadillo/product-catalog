@@ -205,3 +205,76 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 	}
 	return items, nil
 }
+
+const productExists = `-- name: ProductExists :one
+SELECT EXISTS (SELECT 1 FROM products WHERE id = $1 AND deleted_at IS NULL)
+`
+
+func (q *Queries) ProductExists(ctx context.Context, id string) (bool, error) {
+	row := q.db.QueryRow(ctx, productExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const updateProduct = `-- name: UpdateProduct :one
+UPDATE products SET
+    name        = COALESCE($1::text, name),
+    description = CASE WHEN $2::boolean THEN $3::text ELSE description END,
+    price_cents = COALESCE($4::bigint, price_cents),
+    currency    = COALESCE($5::text, currency),
+    stock       = COALESCE($6::integer, stock),
+    category    = COALESCE($7::text, category),
+    is_active   = COALESCE($8::boolean, is_active),
+    version     = version + 1,
+    updated_at  = now()
+WHERE id = $9 AND version = $10 AND deleted_at IS NULL
+RETURNING id, sku, name, description, price_cents, currency, stock, category, is_active, version, created_at, updated_at, deleted_at
+`
+
+type UpdateProductParams struct {
+	Name           *string
+	DescriptionSet bool
+	Description    *string
+	PriceCents     *int64
+	Currency       *string
+	Stock          *int32
+	Category       *string
+	IsActive       *bool
+	ID             string
+	Version        int32
+}
+
+// Changes only the given fields, and only if the version still matches.
+// description_set distinguishes "remove the description" (NULL) from "keep it".
+func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error) {
+	row := q.db.QueryRow(ctx, updateProduct,
+		arg.Name,
+		arg.DescriptionSet,
+		arg.Description,
+		arg.PriceCents,
+		arg.Currency,
+		arg.Stock,
+		arg.Category,
+		arg.IsActive,
+		arg.ID,
+		arg.Version,
+	)
+	var i Product
+	err := row.Scan(
+		&i.ID,
+		&i.Sku,
+		&i.Name,
+		&i.Description,
+		&i.PriceCents,
+		&i.Currency,
+		&i.Stock,
+		&i.Category,
+		&i.IsActive,
+		&i.Version,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}

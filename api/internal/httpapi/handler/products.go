@@ -21,6 +21,7 @@ type ProductService interface {
 	Create(ctx context.Context, in domain.ProductInput) (domain.Product, error)
 	Get(ctx context.Context, id string) (domain.Product, error)
 	List(ctx context.Context, p service.ListParams) (service.ProductPage, error)
+	Update(ctx context.Context, id string, patch domain.ProductPatch) (domain.Product, error)
 }
 
 // Products serves the /products routes.
@@ -39,6 +40,7 @@ func (h *Products) Register(g *gin.RouterGroup) {
 	g.GET("/products", h.List)
 	g.POST("/products", h.Create)
 	g.GET("/products/:id", h.Get)
+	g.PATCH("/products/:id", h.Update)
 }
 
 // List handles GET /products: one page and its meta.
@@ -79,6 +81,25 @@ func (h *Products) Get(c *gin.Context) {
 		return
 	}
 	product, err := h.svc.Get(c.Request.Context(), id)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, toResponse(product))
+}
+
+// Update handles PATCH /products/:id: only the fields present change.
+func (h *Products) Update(c *gin.Context) {
+	id, ok := pathID(c)
+	if !ok {
+		return
+	}
+	var req UpdateProductRequest
+	if err := DecodeJSON(c, &req, h.validate); err != nil {
+		_ = c.Error(err)
+		return
+	}
+	product, err := h.svc.Update(c.Request.Context(), id, req.toPatch())
 	if err != nil {
 		_ = c.Error(err)
 		return

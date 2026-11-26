@@ -16,6 +16,14 @@ type fakeRepo struct {
 	create  func(domain.ProductInput) (domain.Product, error)
 	get     func(id string) (domain.Product, error)
 	list    func(service.ListParams) (service.ProductPage, error)
+	update  func(id string, p domain.ProductPatch) (domain.Product, error)
+}
+
+func (f *fakeRepo) Update(_ context.Context, id string, p domain.ProductPatch) (domain.Product, error) {
+	if f.update == nil {
+		return domain.Product{}, errUnexpected
+	}
+	return f.update(id, p)
 }
 
 func (f *fakeRepo) List(_ context.Context, p service.ListParams) (service.ProductPage, error) {

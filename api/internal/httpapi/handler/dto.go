@@ -40,6 +40,42 @@ func (r CreateProductRequest) toInput() domain.ProductInput {
 	return in
 }
 
+// UpdateProductRequest is the body of PATCH /products/:id. Every field is
+// optional except version; there is no sku, so sending one is an unknown
+// field. An empty description removes it.
+type UpdateProductRequest struct {
+	Version     *int32  `json:"version" validate:"required,min=1"`
+	Name        *string `json:"name" validate:"omitempty,trimmed_len=2-120"`
+	Description *string `json:"description" validate:"omitempty,trimmed_len=0-2000"`
+	PriceCents  *int64  `json:"price_cents" validate:"omitempty,min=1,max=99999999999"`
+	Currency    *string `json:"currency" validate:"omitempty,oneof=MXN USD"`
+	Stock       *int64  `json:"stock" validate:"omitempty,min=0,max=2147483647"`
+	Category    *string `json:"category" validate:"omitempty,oneof=electronics home food clothing other"`
+	IsActive    *bool   `json:"is_active"`
+}
+
+func (r UpdateProductRequest) toPatch() domain.ProductPatch {
+	patch := domain.ProductPatch{
+		Name:        r.Name,
+		Description: r.Description,
+		PriceCents:  r.PriceCents,
+		Stock:       r.Stock,
+		IsActive:    r.IsActive,
+	}
+	if r.Version != nil {
+		patch.Version = *r.Version
+	}
+	if r.Currency != nil {
+		currency := domain.Currency(*r.Currency)
+		patch.Currency = &currency
+	}
+	if r.Category != nil {
+		category := domain.Category(*r.Category)
+		patch.Category = &category
+	}
+	return patch
+}
+
 // ProductResponse is a product in every response. Description is null when
 // there is none.
 type ProductResponse struct {

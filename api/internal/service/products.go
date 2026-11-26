@@ -12,6 +12,7 @@ type ProductRepository interface {
 	Create(ctx context.Context, in domain.ProductInput) (domain.Product, error)
 	Get(ctx context.Context, id string) (domain.Product, error)
 	List(ctx context.Context, p ListParams) (ProductPage, error)
+	Update(ctx context.Context, id string, patch domain.ProductPatch) (domain.Product, error)
 }
 
 // Products applies the product rules on top of a repository.
