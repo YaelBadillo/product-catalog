@@ -362,7 +362,9 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     TooManyRequests:
-      description: "`RATE_LIMITED`: more than 300 requests per minute from one network address."
+      description: >-
+        `RATE_LIMITED`: the network address exceeded a sustained 300 requests
+        per minute (5 per second) or a burst of 300.
       headers:
         Retry-After:
           description: Seconds to wait before retrying.

@@ -51,7 +51,7 @@ Lengths are counted in Unicode characters (`utf8.RuneCountInString` in Go, `char
 |---|---|---|
 | `products_sku_active_key` | `UNIQUE (sku)` | SKU unique among non-deleted; a deleted product frees its SKU (FR-036). `23505` on this name → `ErrSKUAlreadyExists` |
 | `products_category_idx` | `(category)` | Category filter |
-| `products_created_at_idx` | `(created_at, id)` | Default sort (newest first) |
+| `products_created_at_idx` | `(created_at DESC, id)` | Default sort (newest first, `id` as tiebreaker) |
 | `products_currency_price_idx` | `(currency, price_cents, id)` | Currency filter, price range and price sort |
 
 No index for search: `catalog_fold(...) LIKE '%…%'` does a sequential scan, which is enough at 10,000 rows (R2, SC-002).
@@ -104,7 +104,7 @@ The `Down` migration drops them in reverse order.
 | `IsActive` | `*bool` | — | — |
 | `Currency` | `*Currency` | — | Valid enum |
 | `MinPriceCents`, `MaxPriceCents` | `*int64` | — | Require `Currency`; 0 ≤ min ≤ max ≤ 99,999,999,999 |
-| `Query` | string | `""` | Trimmed, ≤ 100 characters; `\`, `%` and `_` escaped in the repository |
+| `Query` | string | `""` | ≤ 100 characters as received (the contract's `maxLength`), then trimmed; `\`, `%` and `_` escaped in the repository |
 | `Sort` | `SortField` | `created_at` | `name` \| `price` \| `stock` \| `created_at` |
 | `Order` | `SortOrder` | `desc` | `asc` \| `desc` |
 

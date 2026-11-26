@@ -76,7 +76,7 @@ Phase 0 of [plan.md](plan.md). Each entry records a decision, why, and what was 
   - defaults (`page=1`, `page_size=20`, `sort=created_at`, `order=desc`) and ranges (`page ≥ 1`, `1 ≤ page_size ≤ 100`);
   - enums, `is_active` as `true|false`, and integer prices;
   - the cross-field rules: `min_price`/`max_price` require `currency`, and `min_price ≤ max_price`;
-  - `q` trimmed and at most 100 characters.
+  - `q` at most 100 characters as received (the same bound as the contract's `maxLength`), then trimmed.
 
   Any error returns `400 VALIDATION_ERROR` with `details[].field` set to the parameter name. Unknown parameters are ignored.
 - **Rationale**: The cross-field rules can't be expressed with tags, and Gin's query binding also uses its global validator.
@@ -100,7 +100,7 @@ Phase 0 of [plan.md](plan.md). Each entry records a decision, why, and what was 
   - A rejected request gets `429 RATE_LIMITED` with `Retry-After` in seconds.
   - It applies only to `/api/v1`, so health probes and `/docs` never return 429.
   - The client IP comes from `c.ClientIP()`. The router calls `SetTrustedProxies(nil)` so `X-Forwarded-For` is never trusted. If the new optional variable `CLIENT_IP_HEADER` is set, its value goes into `router.TrustedPlatform`. On Railway it's `X-Real-IP`: Railway staff say their edge overwrites that header (it isn't appended to), and they recommend it for IP-based rate limiting ([1], [2]). Without the variable (local, compose), the remote address of the connection is used.
-- **Nuance**: With a token bucket, request 301 of a burst gets 429 and the sustained rate is 300/min, but the very first minute can reach about 600 if the burst arrives at the start. That's acceptable for protection against abuse. An exact sliding window would mean keeping a timestamp per request.
+- **Matches FR-043 as amended**: the token bucket is exactly "a sustained 300/min with bursts of up to 300". Request 301 of a burst gets 429. The first minute can reach about 600 if the burst arrives at the start, which the amended FR-043 allows. An exact per-minute window was rejected: it would mean keeping a timestamp per request.
 - **Verify on deploy**: inspect `X-Real-IP` on the real deployment (community reports vary when there's a CDN in front) ([3]).
 - **Dependency**: `golang.org/x/time` (rate), already prescribed by api/CLAUDE.md.
 
@@ -196,7 +196,7 @@ Phase 0 of [plan.md](plan.md). Each entry records a decision, why, and what was 
 ### R24. Accessibility (FR-040, SC-005)
 
 - **Decision**:
-  - The target is WCAG 2.2 AA; the per-page `axe` check uses `wcag2a`, `wcag2aa`, `wcag21aa` and `wcag22aa`.
+  - The target is WCAG 2.2 AA. `src/test/axe.ts` exports `axe` from `configureAxe` with `runOnly` tags `wcag2a`, `wcag2aa`, `wcag21aa` and `wcag22aa`, and every test imports it instead of `vitest-axe`'s default.
   - An `aria-live="polite"` region announces "N productos" after each list update.
   - On a failed submit, react-hook-form already moves focus to the first invalid field (`shouldFocusError`). For server errors, `setError(..., { shouldFocus: true })` on the first one.
   - Confirmations use `@mantine/modals`, which traps focus and returns it on close.

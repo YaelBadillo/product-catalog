@@ -51,7 +51,7 @@ Technical decisions are in [research.md](research.md), the model in [data-model.
 - Money in integer cents, at most 99,999,999,999.
 - `page_size` ≤ 100, and the web always uses 20.
 - `q` ≤ 100 characters.
-- 300 requests/min per IP on `/api/v1`.
+- 300 requests/min per IP sustained, with bursts of up to 300, on `/api/v1` (FR-043).
 - Body ≤ 64 KiB.
 - UI 100% in es-MX, addressing the user as tú.
 - WCAG 2.2 AA.
@@ -116,9 +116,11 @@ Makefile                              # + sqlc, seed, sync-openapi
 .github/workflows/ci.yml              # + sqlc diff, openapi sync check (same job names)
 
 api/
-├── cmd/api/main.go                   # wiring: migrate → repo → service → handlers; `seed` subcommand
+├── cmd/api/
+│   ├── main.go                       # wiring: migrate → repo → service → handlers; `seed` subcommand
+│   └── main_test.go                  # black-box: builds the binary; startup migrations and `seed` (integration)
 ├── migrations/
-│   ├── 00001_create_products.sql     # table, CHECKs, partial indexes, catalog_es, unaccent, catalog_fold
+│   ├── <timestamp>_create_products.sql  # goose (make migrate-new): table, CHECKs, partial indexes, catalog_es, unaccent, catalog_fold
 │   └── embed.go                      # embed.FS
 ├── queries/products.sql              # Create, Get, List, Count, Update, SoftDelete, Exists
 ├── internal/
@@ -134,7 +136,8 @@ api/
 │   ├── httpapi/
 │   │   ├── router.go                 # /api/v1 group with rate limit and body limit; headers; /docs
 │   │   ├── errors.go                 # + single domain → HTTP mapping, details[]
-│   │   ├── handler/                  # products.go, dto.go, decode.go, params.go (+ tests)
+│   │   ├── products*_test.go         # handler tests through the router (fake service, contract-validated)
+│   │   ├── handler/                  # products.go, dto.go, decode.go, validator.go, params.go (+ unit tests)
 │   │   └── middleware/               # ratelimit.go, bodylimit.go, security.go (+ tests)
 │   └── testutil/                     # + postgres.go (testcontainers), AssertResponseMatchesContract
 └── go.mod                            # + goose, x/time, testcontainers-go, validator (direct)
@@ -144,8 +147,10 @@ web/
 └── src/
     ├── api/errors.ts                 # ApiError
     ├── app/
-    │   ├── App.tsx                   # routes, redirect / → /products, /status
-    │   └── AppLayout.tsx             # header with navigation (+ test)
+    │   ├── App.tsx                   # providers + createBrowserRouter(routes)
+    │   ├── routes.tsx                # route array: redirect / → /products, products, /status, *
+    │   ├── AppLayout.tsx             # header with navigation
+    │   └── NotFoundPage.tsx          # unknown paths
     ├── components/ui/PageState.tsx   # generic empty/error state (title, text, action)
     ├── features/
     │   ├── status/                   # moves to /status; texts translated (tests updated to Spanish)
@@ -153,14 +158,18 @@ web/
     │       ├── api.ts  hooks.ts  query-keys.ts
     │       ├── schema.ts             # zod for the form (+ tests)
     │       ├── search-params.ts      # URL ⇄ CatalogSearch (+ tests)
+    │       ├── use-catalog-search.ts # URL state: push/replace, debounced search
     │       ├── format.ts             # formatPrice, formatDateTime (+ tests)
     │       ├── messages.ts           # FR-046 texts and per-field messages (FR-047)
     │       ├── testing.ts            # fixtures and MSW handlers for the tests
     │       ├── components/           # ProductTable, ProductCardList, ProductFilters, ProductForm,
-    │       │                         # ProductDetails, ConflictAlert, ResultsAnnouncer
+    │       │                         # ProductDetails, ConflictAlert, ResultsAnnouncer, delete-confirm
     │       └── pages/                # ProductListPage, ProductCreatePage, ProductDetailPage,
     │                                 # ProductEditPage (+ integration tests with MSW and axe each)
-    └── test/handlers.ts              # default handlers (health) unchanged
+    └── test/
+        ├── handlers.ts               # default handlers (health) unchanged
+        ├── render.tsx                # + renderRoute(path) with createMemoryRouter(routes)
+        └── axe.ts                    # axe configured for WCAG 2.2 AA tags
 ```
 
 **Structure Decision**: The existing monorepo is kept. `api/` follows the layout in api/CLAUDE.md and adds `migrate`, `seed` and `apidocs` as internal packages with one responsibility each. `web/` adds the `products` feature and moves `status` to `/status`. No other projects or shared packages are created.

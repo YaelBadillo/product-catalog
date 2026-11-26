@@ -23,6 +23,7 @@
 - Q: How many requests per minute may one connection make before the application asks to wait? → A: 300 per minute per network address (5 per second on average).
 - Q: How do price fields (form and range filter) treat thousands separators and commas? → A: The field adds thousands separators as the user types ("1,299.90"); only digits and one decimal point can be typed, and a typed comma is ignored.
 - Q: Does ignoring a typed comma stop `199,90` from becoming 19,990.00? → A: No: the comma is lost, but the following digits are still appended. When a comma is ignored, the field shows the hint "Usa punto (.) para los decimales", and the thousands separators make a wrong amount visible before saving (found during planning).
+- Q: How is the limit of 300 requests per minute measured? → A: As a sustained rate of 5 per second with bursts of up to 300 requests per network address (found during analysis; FR-043).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -130,8 +131,8 @@ The administrator deletes a product after confirming, to remove it from the cata
 - Price range with minimum greater than maximum: error on the range filter; the results do not change until it is fixed.
 - Shared link with unknown or invalid values (unknown category, page 0, price range without currency): those values are ignored and defaults apply; no error page.
 - Link to a page beyond the last one: a message says the page has no products, with an action to go to the first page.
-- Products added or deleted by others while browsing: a product may shift between pages, but within one loaded set of pages, order is consistent (ties always resolved the same way).
-- Too many requests (over 300 per minute from one network address): the user sees a message asking them to wait and retry; entered data is kept.
+- Products added or deleted by others while browsing: a product may shift between pages. When nobody changes the catalog, ties are always resolved the same way (FR-020), so no product repeats or is skipped across pages.
+- Too many requests (beyond FR-043's limit: a burst of more than 300, or more than 5 per second sustained, from one network address): the user sees a message asking them to wait and retry; entered data is kept.
 - Connection loss or unexpected server error: a generic message without technical details and a retry option; entered data is kept.
 - Long values (120-character name, 2000-character description): shown in full on the detail view without breaking the layout; the list may truncate them visually.
 
@@ -198,7 +199,7 @@ The administrator deletes a product after confirming, to remove it from the cata
 - **FR-040**: Every view and flow MUST be operable with the keyboard alone and with a screen reader: every field has a label, errors are associated with their field, focus moves to the first invalid field after a failed submission, dialogs keep focus inside and return it when closed, and updated result counts are announced.
 - **FR-041**: States such as active/inactive or errors MUST NOT be conveyed by color alone.
 - **FR-042**: Unexpected errors MUST show a generic message without technical details and offer a retry; entered data MUST be kept.
-- **FR-043**: When one network address sends more than 300 requests in a minute, the system MUST temporarily refuse further ones, and the interface MUST ask the user to wait and retry. People sharing a network address share this limit.
+- **FR-043**: Each network address MUST be limited to a sustained rate of 300 requests per minute (5 per second), with bursts of up to 300 requests. Requests beyond that limit MUST be refused temporarily, and the interface MUST ask the user to wait and retry. People sharing a network address share this limit.
 - **FR-044**: From any view, users MUST be able to reach the catalog and the create form.
 - **FR-045**: All user-facing text (labels, messages, confirmations, errors, category and status names) MUST be in Mexican Spanish, including the existing views. Dates and amounts MUST follow Mexican Spanish formatting, and each page MUST declare its language so screen readers pronounce it correctly. Product data is shown as entered.
 
@@ -254,7 +255,7 @@ The administrator deletes a product after confirming, to remove it from the cata
 
 - A single role, the administrator, manages the catalog. There is no authentication (out of scope), so anyone who can open the app can manage it.
 - Users are Spanish speakers in Mexico. Amounts are entered with a dot as the decimal separator (`199.90`), as is usual in Mexico. Code and project documentation stay in English; only what the user sees is in Spanish (FR-045).
-- Category and currency filters take one value each; the status filter defaults to showing both.
+- The status filter defaults to showing both active and inactive products.
 - Search has no minimum length; surrounding spaces in the search text are ignored.
 - The price maximum (999,999,999.99) and inventory maximum (2,147,483,647) are safe technical bounds, not business rules.
 - When sorting by price without a currency, groups follow a fixed order (MXN, then USD) regardless of direction.
