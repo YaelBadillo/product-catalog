@@ -1,3 +1,5 @@
+import { screen, within } from "@testing-library/react";
+import type { UserEvent } from "@testing-library/user-event";
 import { delay, http, HttpResponse } from "msw";
 import type { ErrorCode } from "../../api/errors";
 import { apiUrl } from "../../test/handlers";
@@ -75,3 +77,22 @@ export const productHandlers = {
   pending: (method: "get" | "post" | "patch" | "delete", path = productPath) =>
     http[method](apiUrl(path), () => delay("infinite")),
 };
+
+/** Opens the Mantine Select labelled `label` and picks `option`. */
+export async function chooseOption(
+  user: UserEvent,
+  label: string,
+  option: string,
+) {
+  await user.click(field(label));
+  const listbox = await screen.findByRole("listbox");
+  await user.click(within(listbox).getByRole("option", { name: option }));
+}
+
+/** The text-like field (input, textarea, select) with accessible name `label`. */
+export function field(label: string): HTMLInputElement {
+  const found =
+    screen.queryByRole("textbox", { name: label }) ??
+    screen.getByRole("combobox", { name: label });
+  return found as HTMLInputElement;
+}

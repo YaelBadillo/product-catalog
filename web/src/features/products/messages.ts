@@ -42,6 +42,7 @@ export const messages = {
     backToCatalog: "Volver al catálogo",
     clearFilters: "Limpiar filtros",
     firstPage: "Ir a la primera página",
+    close: "Cerrar",
   },
   deleteConfirm: {
     title: "¿Eliminar producto?",

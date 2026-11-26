@@ -2,7 +2,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
-import { createMemoryRouter, MemoryRouter } from "react-router";
+import {
+  createMemoryRouter,
+  type InitialEntry,
+  MemoryRouter,
+} from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { UiProvider } from "../app/providers";
 import { routes } from "../app/routes";
@@ -32,12 +36,15 @@ function createTestQueryClient() {
 
 /**
  * Renders the app's routes at `path` with the same providers as
- * renderWithProviders. Returns the memory `router`, so tests can check the
- * location, navigate and go back.
+ * renderWithProviders. `path` may be a list of history entries; the last one
+ * is current. Returns the memory `router`, so tests can check the location,
+ * navigate and go back.
  */
-export function renderRoute(path: string) {
+export function renderRoute(path: string | InitialEntry[]) {
   const queryClient = createTestQueryClient();
-  const router = createMemoryRouter(routes, { initialEntries: [path] });
+  const router = createMemoryRouter(routes, {
+    initialEntries: typeof path === "string" ? [path] : path,
+  });
   return {
     user: userEvent.setup(),
     router,

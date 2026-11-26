@@ -1,0 +1,14 @@
+.list {
+  display: grid;
+  gap: var(--mantine-spacing-md);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.value {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
