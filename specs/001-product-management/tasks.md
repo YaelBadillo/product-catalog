@@ -205,36 +205,36 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 > Write these tests FIRST and make sure they FAIL before implementation.
 
-- [ ] T049 [P] [US1] Write repository tests in api/internal/repository/products_test.go, plus api/internal/repository/main_test.go (`TestMain`: `StartPostgres` + `NewMigratedPool`; `ResetDB` per test):
+- [X] T049 [P] [US1] Write repository tests in api/internal/repository/products_test.go, plus api/internal/repository/main_test.go (`TestMain`: `StartPostgres` + `NewMigratedPool`; `ResetDB` per test):
   - `Create` returns the server fields (`id`, `version: 1`, timestamps) and stores `description` as NULL;
   - a duplicate active SKU → `domain.ErrSKUAlreadyExists`;
   - two concurrent `Create` calls with the same SKU: exactly one succeeds and the other gets `ErrSKUAlreadyExists` (spec Edge Cases);
   - `Get` by id;
   - `Get` of an unknown id → `domain.ErrNotFound`.
-- [ ] T050 [P] [US1] Write service tests in api/internal/service/products_test.go, with a hand-written fake repository:
+- [X] T050 [P] [US1] Write service tests in api/internal/service/products_test.go, with a hand-written fake repository:
   - `Create` normalizes (`"  abc-123 "` → `ABC-123`, name trimmed, blank description → nil) and applies the defaults (MXN, active);
   - a `*domain.ValidationError` doesn't call the repository;
   - `ErrSKUAlreadyExists` propagates;
   - `Get` returns the product or `ErrNotFound`.
-- [ ] T051 [P] [US1] Write handler tests in api/internal/httpapi/products_test.go, through `httpapi.NewRouter` with a fake service. Every response is validated with `AssertMatchesContract`, or with `AssertResponseMatchesContract` for invalid requests. Cases are quickstart.md API scenarios 1 to 5:
+- [X] T051 [P] [US1] Write handler tests in api/internal/httpapi/products_test.go, through `httpapi.NewRouter` with a fake service. Every response is validated with `AssertMatchesContract`, or with `AssertResponseMatchesContract` for invalid requests. Cases are quickstart.md API scenarios 1 to 5:
   - POST → 201 with `Location: /api/v1/products/{id}`;
   - 409 `SKU_ALREADY_EXISTS`;
   - 422 with `details` for `name`, `price_cents` and `category`;
   - 400 for the unknown field `color`, malformed JSON and a wrong type;
   - GET → 200, 404, and 400 for `abc`;
   - **platform responses on real routes** (Constitution III): a POST body over 64 KiB → 413 `PAYLOAD_TOO_LARGE`; request 301 from one IP → 429 `RATE_LIMITED` with `Retry-After`; an unexpected error from the fake service → 500 `INTERNAL_ERROR` with the generic message and request ID.
-- [ ] T052 [P] [US1] Write tests in web/src/features/products/schema.test.ts for `productFormSchema` and `toCreateBody`:
+- [X] T052 [P] [US1] Write tests in web/src/features/products/schema.test.ts for `productFormSchema` and `toCreateBody`:
   - a lowercase or space-padded SKU is valid;
   - name length is counted after trimming;
   - price `0`, more than 2 decimals and above 999,999,999.99 each give their FR-047 message;
   - stock must be a whole number ≥ 0;
   - category is required;
   - `toCreateBody` trims, uppercases the SKU, sends `price_cents = Math.round(price * 100)` and omits an empty description.
-- [ ] T053 [P] [US1] Write tests in web/src/features/products/pages/ProductCreatePage.test.tsx (`renderRoute("/products/new")`):
+- [X] T053 [P] [US1] Write tests in web/src/features/products/pages/ProductCreatePage.test.tsx (`renderRoute("/products/new")`):
   - **US1 scenarios 1 to 6 and 9**: MXN, active and an empty category by default. A valid submission sends the POST and shows "Producto creado", then the detail opens. Client errors appear on each field and focus moves to the first one. A 422 maps to the Spanish message per field. A 409 shows "Ya existe un producto con este SKU". A 500 shows "Algo salió mal. Inténtalo de nuevo." and keeps the values. A 429 shows "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo." and keeps the values (FR-043). The button is disabled while the request is pending.
   - The price shows thousands separators. A typed comma isn't entered and "Usa punto (.) para los decimales" appears (C8).
   - `axe` passes.
-- [ ] T054 [P] [US1] Write tests in web/src/features/products/pages/ProductDetailPage.test.tsx:
+- [X] T054 [P] [US1] Write tests in web/src/features/products/pages/ProductDetailPage.test.tsx:
   - **US1 scenarios 7 and 8, and FR-015**: every field shows, including `$199.90 MXN`, "Sin descripción", the dates as `25 nov 2026, 14:30`, the category in Spanish, and the status as text and icon. The product's internal `id` doesn't appear anywhere on the page.
   - A 120-character name and a 2000-character description appear in full (spec Edge Cases).
   - "Volver al catálogo" returns to the previous catalog view, filters included, when the user came from the catalog, and goes to `/products` otherwise (FR-023, contracts/web-routes.md).
@@ -246,27 +246,27 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### Implementation for User Story 1
 
-- [ ] T055 [US1] Write the `CreateProduct` and `GetProduct` queries (`deleted_at IS NULL`) in api/queries/products.sql and run `make sqlc` to generate api/internal/repository/db/
-- [ ] T056 [P] [US1] Add a "sqlc diff" step (`go tool -modfile=tools/sqlc.mod sqlc diff`) to the `API (Go)` job in .github/workflows/ci.yml
-- [ ] T057 [US1] Implement api/internal/repository/products.go:
+- [X] T055 [US1] Write the `CreateProduct` and `GetProduct` queries (`deleted_at IS NULL`) in api/queries/products.sql and run `make sqlc` to generate api/internal/repository/db/
+- [X] T056 [P] [US1] Add a "sqlc diff" step (`go tool -modfile=tools/sqlc.mod sqlc diff`) to the `API (Go)` job in .github/workflows/ci.yml
+- [X] T057 [US1] Implement api/internal/repository/products.go:
   - `NewProducts(pool)`;
   - `Create`, translating `23505` on `products_sku_active_key` to `domain.ErrSKUAlreadyExists` (R6);
   - `Get`, translating `pgx.ErrNoRows` to `domain.ErrNotFound`;
   - mapping between the db and domain types per data-model.md Product.id, Product.description (NULL ↔ nil), Product.price_cents, Product.stock and Product.version.
-- [ ] T058 [US1] Implement api/internal/service/products.go: the `ProductRepository` interface (only `Create` and `Get` for now), `NewProducts(repo)`, and `Create` (domain normalization and validation, defaults per data-model.md Product.currency and Product.is_active) and `Get`
-- [ ] T059 [US1] Implement api/internal/httpapi/handler/products.go and api/internal/httpapi/handler/dto.go, and wire repository → service → handler in api/cmd/api/main.go:
+- [X] T058 [US1] Implement api/internal/service/products.go: the `ProductRepository` interface (only `Create` and `Get` for now), `NewProducts(repo)`, and `Create` (domain normalization and validation, defaults per data-model.md Product.currency and Product.is_active) and `Get`
+- [X] T059 [US1] Implement api/internal/httpapi/handler/products.go and api/internal/httpapi/handler/dto.go, and wire repository → service → handler in api/cmd/api/main.go:
   - **Handler**: a `ProductService` interface defined by the handler; `Create` (decode with `decodeJSON`, then 201 with `Location`); `Get` (an invalid UUID gives a `RequestError` → 400).
   - **DTOs**: `CreateProductRequest`, with shape tags per data-model.md Product.sku, Product.name, Product.description, Product.price_cents, Product.currency, Product.stock, Product.category and Product.is_active; `ProductResponse`, where Product.description is `*string` → `null`.
   - **Routes**: `(*Products).Register(*gin.RouterGroup)` adds `POST /products` and `GET /products/:id`. main.go passes it to `NewRouter`, which mounts it under `/api/v1`.
-- [ ] T060 [P] [US1] Implement `productFormSchema` (zod, messages from messages.ts) and `toCreateBody` in web/src/features/products/schema.ts, per data-model.md ProductFormValues.sku, ProductFormValues.name, ProductFormValues.description, ProductFormValues.price, ProductFormValues.currency, ProductFormValues.stock, ProductFormValues.category and ProductFormValues.isActive. The rules are those of Product.sku, Product.name, Product.description, Product.price_cents, Product.stock and Product.category. Use no `decimalScale`: the 2-decimal check is the schema's (C2).
-- [ ] T061 [US1] Implement `createProduct` and `getProduct` in web/src/features/products/api.ts (throwing `ApiError`) and `useProduct(id)` and `useCreateProduct` (on success: `setQueryData(detail)` + invalidate `lists()`) in web/src/features/products/hooks.ts
-- [ ] T062 [US1] Implement web/src/features/products/components/ProductForm.tsx, the form shared by create and edit (react-hook-form + `zodResolver`; `Select` and `NumberInput` through `Controller`):
+- [X] T060 [P] [US1] Implement `productFormSchema` (zod, messages from messages.ts) and `toCreateBody` in web/src/features/products/schema.ts, per data-model.md ProductFormValues.sku, ProductFormValues.name, ProductFormValues.description, ProductFormValues.price, ProductFormValues.currency, ProductFormValues.stock, ProductFormValues.category and ProductFormValues.isActive. The rules are those of Product.sku, Product.name, Product.description, Product.price_cents, Product.stock and Product.category. Use no `decimalScale`: the 2-decimal check is the schema's (C2).
+- [X] T061 [US1] Implement `createProduct` and `getProduct` in web/src/features/products/api.ts (throwing `ApiError`) and `useProduct(id)` and `useCreateProduct` (on success: `setQueryData(detail)` + invalidate `lists()`) in web/src/features/products/hooks.ts
+- [X] T062 [US1] Implement web/src/features/products/components/ProductForm.tsx, the form shared by create and edit (react-hook-form + `zodResolver`; `Select` and `NumberInput` through `Controller`):
   - **Price** (R21, C2, C8): `NumberInput` with `thousandSeparator=","`, `decimalSeparator="."`, `allowNegative={false}` and `clampBehavior="none"`. A typed comma is dropped and shows the hint.
   - **Edit mode**: a read-only SKU, and the submit button disabled while the form isn't dirty.
   - **Server errors**: mapped to fields with `setError(field, messages.field[field], { shouldFocus })`.
   - The button is disabled while the request is pending.
-- [ ] T063 [US1] Implement web/src/features/products/pages/ProductCreatePage.tsx (notifications "Producto creado" / "Algo salió mal…", navigation to `/products/:id`, `document.title`) and register `/products/new` in web/src/app/routes.tsx
-- [ ] T064 [US1] Implement web/src/features/products/components/ProductDetails.tsx (presentational) and web/src/features/products/pages/ProductDetailPage.tsx:
+- [X] T063 [US1] Implement web/src/features/products/pages/ProductCreatePage.tsx (notifications "Producto creado" / "Algo salió mal…", navigation to `/products/:id`, `document.title`) and register `/products/new` in web/src/app/routes.tsx
+- [X] T064 [US1] Implement web/src/features/products/components/ProductDetails.tsx (presentational) and web/src/features/products/pages/ProductDetailPage.tsx:
   - an `:id` that isn't a UUID → not-found with no request;
   - loading, not-found and error states with `PageState`;
   - a "Volver al catálogo" link: `navigate(-1)` when the previous history entry is the catalog, `/products` otherwise (contracts/web-routes.md);
