@@ -3,6 +3,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { StatusPage } from "../features/status/pages/StatusPage";
+import { UiProvider } from "./providers";
 
 const queryClient = new QueryClient();
 
@@ -18,10 +19,12 @@ function RenderErrorFallback() {
 
 export function App() {
   return (
-    <ErrorBoundary FallbackComponent={RenderErrorFallback}>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <UiProvider>
+      <ErrorBoundary FallbackComponent={RenderErrorFallback}>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </UiProvider>
   );
 }
