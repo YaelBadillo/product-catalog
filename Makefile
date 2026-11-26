@@ -37,8 +37,8 @@ dev-api: ## Run the API locally with go run (needs `make db`)
 dev-web: ## Run the web dev server (Vite)
 	pnpm -C $(WEB_DIR) dev
 
-seed: ## Load 20 sample products (migrates first; reruns create no duplicates)
-	cd $(API_DIR) && go run ./cmd/api seed
+seed: ## Load 20 sample products with the API image (no Go needed; reruns create no duplicates)
+	docker compose run --rm api seed
 
 ##@ Tests
 test: test-api test-web ## Run every test
