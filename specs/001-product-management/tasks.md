@@ -29,16 +29,16 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 **Purpose**: The contract first (Constitution III) and the tooling that every phase uses.
 
-- [ ] T001 Add the `sqlc` (`$(call go_tool,sqlc) generate`) and `sync-openapi` (copy `openapi.yaml` to `api/internal/apidocs/openapi.yaml`) targets to Makefile, under `##@ Generation`, each with its `##` description and listed in `.PHONY`
-- [ ] T002 Merge contracts/products-api.yaml into openapi.yaml:
+- [X] T001 Add the `sqlc` (`$(call go_tool,sqlc) generate`) and `sync-openapi` (copy `openapi.yaml` to `api/internal/apidocs/openapi.yaml`) targets to Makefile, under `##@ Generation`, each with its `##` description and listed in `.PHONY`
+- [X] T002 Merge contracts/products-api.yaml into openapi.yaml:
   - paths `/api/v1/products`, `/api/v1/products/{id}`, `/docs`, `/docs/openapi.yaml`;
   - tags `products` and `docs`;
   - `components.schemas` and `components.responses`;
   - `info.version: 0.2.0`.
 
   Keep `/healthz`, `/readyz` and their schemas unchanged, then lint with `npx --yes @redocly/cli@2.80.0 lint openapi.yaml`.
-- [ ] T003 Run `make gen-types` (regenerates web/src/api/schema.d.ts) and `make sync-openapi` (creates api/internal/apidocs/openapi.yaml), then `make test-unit` to confirm the existing health tests still pass against the merged contract
-- [ ] T004 [P] Add a step "OpenAPI copy in sync" (`make sync-openapi && git diff --exit-code api/internal/apidocs/openapi.yaml`, run from the repo root) to the `API (Go)` job in .github/workflows/ci.yml, without renaming any job
+- [X] T003 Run `make gen-types` (regenerates web/src/api/schema.d.ts) and `make sync-openapi` (creates api/internal/apidocs/openapi.yaml), then `make test-unit` to confirm the existing health tests still pass against the merged contract
+- [X] T004 [P] Add a step "OpenAPI copy in sync" (`make sync-openapi && git diff --exit-code api/internal/apidocs/openapi.yaml`, run from the repo root) to the `API (Go)` job in .github/workflows/ci.yml, without renaming any job
 
 ---
 

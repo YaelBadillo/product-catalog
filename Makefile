@@ -14,7 +14,7 @@ go_tool = cd $(API_DIR) && go tool -modfile=tools/$(1).mod $(1)
 
 .DEFAULT_GOAL := help
 .PHONY: help up down db dev-api dev-web test test-unit test-api test-web \
-	lint lint-api lint-web fmt gen-types migrate-new
+	lint lint-api lint-web fmt gen-types sqlc sync-openapi migrate-new
 
 help: ## List the available commands
 	@awk 'BEGIN {FS = ":.*## "} \
@@ -68,6 +68,13 @@ fmt: ## Format both sides
 ##@ Generation
 gen-types: ## Regenerate web/src/api/schema.d.ts from openapi.yaml
 	pnpm -C $(WEB_DIR) gen:api
+
+sqlc: ## Regenerate api/internal/repository/db from migrations and queries
+	$(call go_tool,sqlc) generate
+
+sync-openapi: ## Copy openapi.yaml into api/internal/apidocs (embedded by /docs)
+	mkdir -p $(API_DIR)/internal/apidocs
+	cp openapi.yaml $(API_DIR)/internal/apidocs/openapi.yaml
 
 migrate-new: ## Create a goose migration: make migrate-new name=create_products
 	@test -n "$(name)" || { echo "usage: make migrate-new name=<name>" >&2; exit 1; }
