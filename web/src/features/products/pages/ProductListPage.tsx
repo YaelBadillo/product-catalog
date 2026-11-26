@@ -27,7 +27,7 @@ import {
   notifyError,
   notifySuccess,
 } from "../feedback";
-import { useDeleteProduct, useProducts } from "../hooks";
+import { useDeleteProduct, useProducts, useProductsLoad } from "../hooks";
 import { messages } from "../messages";
 import type { CatalogState } from "../navigation";
 import { hasFilters } from "../search-params";
@@ -135,7 +135,11 @@ export function ProductListPage() {
   const { search, setPage } = controls;
   const { data, error, isPending, isFetching, refetch } = useProducts(search);
   const remove = useDeleteProduct();
-  const [conflict, setConflict] = useState(false);
+  // The list load on screen when a deletion hit a conflict. The notice stays
+  // until the list loads again successfully (reload, refetch, other mutation).
+  const currentLoad = useProductsLoad(search);
+  const [conflictLoad, setConflictLoad] = useState<string>();
+  const conflict = conflictLoad !== undefined && conflictLoad === currentLoad();
 
   function handleDelete(product: Product) {
     // Deleting the only product of a page beyond the first shows the previous one.
@@ -154,7 +158,7 @@ export function ProductListPage() {
           error instanceof ApiError &&
           error.code === "VERSION_CONFLICT"
         ) {
-          setConflict(true);
+          setConflictLoad(currentLoad());
         } else {
           notifyError(error, deleteErrorText(error));
         }
@@ -218,7 +222,6 @@ export function ProductListPage() {
           <ConflictAlert
             reloading={isFetching}
             onReload={() => {
-              setConflict(false);
               void refetch();
             }}
           />

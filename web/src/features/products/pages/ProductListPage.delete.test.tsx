@@ -5,6 +5,7 @@ import { axe } from "../../../test/axe";
 import { renderRoute } from "../../../test/render";
 import { server } from "../../../test/server";
 import { messages } from "../messages";
+import { productKeys } from "../query-keys";
 import {
   buildList,
   buildProduct,
@@ -175,6 +176,78 @@ describe("ProductListPage: delete", () => {
       screen.getByRole("button", { name: messages.actions.reload }),
     ).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("hides the conflict notice once the list reloads", async () => {
+    serveCatalog([cafe, silla], () => errorResponse(409, "VERSION_CONFLICT"));
+    const { user } = renderRoute("/products");
+    await screen.findByRole("article", { name: "Café molido" });
+
+    await user.click(deleteButton("Café molido"));
+    await user.click(confirmButton());
+    expect(
+      await screen.findByText(messages.feedback.conflict),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: messages.actions.reload }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(messages.feedback.conflict),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("hides the conflict notice after an automatic refetch", async () => {
+    serveCatalog([cafe, silla], () => errorResponse(409, "VERSION_CONFLICT"));
+    const { user, queryClient } = renderRoute("/products");
+    await screen.findByRole("article", { name: "Café molido" });
+
+    await user.click(deleteButton("Café molido"));
+    await user.click(confirmButton());
+    expect(
+      await screen.findByText(messages.feedback.conflict),
+    ).toBeInTheDocument();
+
+    await queryClient.refetchQueries({ queryKey: productKeys.lists() });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(messages.feedback.conflict),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("hides the conflict notice after another successful deletion", async () => {
+    let calls = 0;
+    serveCatalog([cafe, silla], () => {
+      calls += 1;
+      return calls === 1
+        ? errorResponse(409, "VERSION_CONFLICT")
+        : new HttpResponse(null, { status: 204 });
+    });
+    const { user } = renderRoute("/products");
+    await screen.findByRole("article", { name: "Café molido" });
+
+    await user.click(deleteButton("Café molido"));
+    await user.click(confirmButton());
+    expect(
+      await screen.findByText(messages.feedback.conflict),
+    ).toBeInTheDocument();
+
+    await user.click(deleteButton("Silla plegable"));
+    await user.click(confirmButton());
+
+    expect(
+      await screen.findByText(messages.feedback.deleted),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByText(messages.feedback.conflict),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("removes a product someone else already deleted, with a notice", async () => {

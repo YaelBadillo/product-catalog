@@ -1,13 +1,14 @@
 import { Alert } from "@mantine/core";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { UiProvider } from "./providers";
+import { createQueryClient } from "./query-client";
 import { routes } from "./routes";
 
-const queryClient = new QueryClient();
+const queryClient = createQueryClient();
 
 function RenderErrorFallback() {
   return (

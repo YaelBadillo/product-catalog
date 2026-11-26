@@ -51,15 +51,17 @@ function NotFound() {
 
 function ProductDetailContent({ id }: { id: string }) {
   const { catalogSearch } = useCatalogState();
+  const navigate = useNavigate();
+  const remove = useDeleteProduct();
+  // A successful deletion removes this product's cache entry while the page is
+  // still mounted; disabling the query keeps it from being requested again.
   const {
     data: product,
     error,
     isPending,
     isFetching,
     refetch,
-  } = useProduct(id);
-  const navigate = useNavigate();
-  const remove = useDeleteProduct();
+  } = useProduct(id, { enabled: !remove.isPending && !remove.isSuccess });
   const [conflict, setConflict] = useState(false);
 
   function handleDelete(current: Product) {

@@ -56,6 +56,30 @@ describe("ProductDetailPage: delete", () => {
     });
   });
 
+  it("does not request the deleted product again", async () => {
+    let gets = 0;
+    server.use(
+      productHandlers.get(() => {
+        gets += 1;
+        return HttpResponse.json(product);
+      }),
+      productHandlers.listOf(buildList([])),
+      productHandlers.remove(() => new HttpResponse(null, { status: 204 })),
+    );
+    const { user, router } = renderRoute(path);
+
+    await confirmDelete(user);
+    const getsBeforeDeleting = gets;
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/products");
+    });
+    await screen.findByRole("heading", { level: 1, name: "Catálogo" });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(getsBeforeDeleting).toBe(1);
+    expect(gets).toBe(1);
+  });
+
   it("disables the delete action while the request is pending", async () => {
     serveDetail(async () => {
       await delay("infinite");

@@ -48,6 +48,18 @@ export function useProducts(search: CatalogSearch) {
 }
 
 /**
+ * Returns a function giving the current load of the list of `search`: it
+ * changes on every successful (re)fetch, even when the data is identical, and
+ * when the view changes.
+ */
+export function useProductsLoad(search: CatalogSearch): () => string {
+  const queryClient = useQueryClient();
+  const key = productKeys.list(toListQuery(search));
+  return () =>
+    `${JSON.stringify(key)}#${String(queryClient.getQueryState(key)?.dataUpdateCount ?? 0)}`;
+}
+
+/**
  * Saves an edit. No optimistic update (C7): the form waits for the answer,
  * and a conflict must leave every cache untouched.
  */

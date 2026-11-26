@@ -170,6 +170,25 @@ describe("ProductDetailPage", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it("shows not found after a single request, without retrying the 404", async () => {
+    let requests = 0;
+    server.use(
+      productHandlers.get(() => {
+        requests += 1;
+        return errorResponse(404, "NOT_FOUND");
+      }),
+    );
+    renderRoute(path);
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: messages.notFound.title,
+      }),
+    ).toBeInTheDocument();
+    expect(requests).toBe(1);
+  });
+
   it("shows not found for an id that is not a UUID, without a request", async () => {
     let requests = 0;
     server.use(
