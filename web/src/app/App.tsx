@@ -1,24 +1,25 @@
 import { Alert } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
-import { StatusPage } from "../features/status/pages/StatusPage";
 import { UiProvider } from "./providers";
+import { routes } from "./routes";
 
 const queryClient = new QueryClient();
-
-const router = createBrowserRouter([{ path: "/", element: <StatusPage /> }]);
 
 function RenderErrorFallback() {
   return (
     <Alert variant="outline" color="red.9" m="xl">
-      Something went wrong. Reload the page to try again.
+      Algo salió mal. Recarga la página para intentarlo de nuevo.
     </Alert>
   );
 }
 
 export function App() {
+  // Created on first render, so it reads the URL at mount time.
+  const [router] = useState(() => createBrowserRouter(routes));
   return (
     <UiProvider>
       <ErrorBoundary FallbackComponent={RenderErrorFallback}>

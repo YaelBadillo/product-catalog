@@ -1,13 +1,13 @@
 import { screen, waitFor } from "@testing-library/react";
 import { delay, http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { axe } from "vitest-axe";
+import { axe } from "../../../test/axe";
 import { apiUrl } from "../../../test/handlers";
 import { renderWithProviders } from "../../../test/render";
 import { server } from "../../../test/server";
 import { StatusPage } from "./StatusPage";
 
-function service(name: "API" | "Database") {
+function service(name: "API" | "Base de datos") {
   return screen.getByRole("region", { name });
 }
 
@@ -19,7 +19,9 @@ describe("StatusPage", () => {
     );
     const { container } = renderWithProviders(<StatusPage />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Checking status…");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Comprobando el estado…",
+    );
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -28,8 +30,8 @@ describe("StatusPage", () => {
 
     expect(
       await screen.findByRole("region", { name: "API" }),
-    ).toHaveTextContent("Operational");
-    expect(service("Database")).toHaveTextContent("Operational");
+    ).toHaveTextContent("En funcionamiento");
+    expect(service("Base de datos")).toHaveTextContent("En funcionamiento");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
@@ -47,8 +49,8 @@ describe("StatusPage", () => {
 
     expect(
       await screen.findByRole("region", { name: "API" }),
-    ).toHaveTextContent("Operational");
-    expect(service("Database")).toHaveTextContent("Unavailable");
+    ).toHaveTextContent("En funcionamiento");
+    expect(service("Base de datos")).toHaveTextContent("No disponible");
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -60,10 +62,10 @@ describe("StatusPage", () => {
     const { user, container } = renderWithProviders(<StatusPage />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The API is not responding.",
+      "La API no responde.",
     );
-    expect(service("API")).toHaveTextContent("Unavailable");
-    expect(service("Database")).toHaveTextContent("Unknown");
+    expect(service("API")).toHaveTextContent("No disponible");
+    expect(service("Base de datos")).toHaveTextContent("Desconocido");
     expect(await axe(container)).toHaveNoViolations();
 
     let release = () => {};
@@ -80,7 +82,7 @@ describe("StatusPage", () => {
         return HttpResponse.json({ status: "ok", checks: { database: "ok" } });
       }),
     );
-    const retry = screen.getByRole("button", { name: "Retry" });
+    const retry = screen.getByRole("button", { name: "Reintentar" });
 
     await user.click(retry);
 
@@ -89,9 +91,9 @@ describe("StatusPage", () => {
     });
     release();
     await waitFor(() => {
-      expect(service("API")).toHaveTextContent("Operational");
+      expect(service("API")).toHaveTextContent("En funcionamiento");
     });
-    expect(service("Database")).toHaveTextContent("Operational");
+    expect(service("Base de datos")).toHaveTextContent("En funcionamiento");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

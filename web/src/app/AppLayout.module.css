@@ -1,0 +1,23 @@
+.link {
+  color: var(--mantine-color-white);
+  font-weight: 500;
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link[aria-current="page"] {
+  color: var(--mantine-color-brand-2);
+  text-decoration: underline;
+  text-decoration-color: var(--mantine-color-brand-3);
+  text-decoration-thickness: 2px;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--mantine-color-brand-2);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
