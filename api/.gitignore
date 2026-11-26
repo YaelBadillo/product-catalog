@@ -1,0 +1,10 @@
+# Binaries (`go build ./cmd/api` writes ./api)
+/api
+/bin/
+
+# Test artifacts
+*.test
+*.out
+
+# Local env (secrets never go in the repo)
+.env
