@@ -50,62 +50,62 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### API: test infrastructure and database
 
-- [ ] T005 [P] Write tests for `AssertResponseMatchesContract` in api/internal/testutil/openapi_test.go, using the existing `fakeT`/`runFake`:
+- [X] T005 [P] Write tests for `AssertResponseMatchesContract` in api/internal/testutil/openapi_test.go, using the existing `fakeT`/`runFake`:
   - A request outside the contract (`GET /api/v1/products/abc`) with a documented `400` error envelope passes.
   - An undocumented status or an invalid body fails.
   - A `200` for `GET /api/v1/products/{id}` with `"description": null` passes. This verifies that kin-openapi accepts `type: [string, "null"]` (R16).
-- [ ] T006 Implement `AssertResponseMatchesContract` in api/internal/testutil/openapi.go: find the route, skip request validation, validate the response with `IncludeResponseStatus`, and share the contract loading with `AssertMatchesContract`. If T005 shows that kin-openapi rejects the type array, change `Product.description` to `anyOf` in openapi.yaml and in contracts/products-api.yaml, then rerun T003 (R16).
-- [ ] T007 [P] Create api/internal/testutil/postgres.go:
+- [X] T006 Implement `AssertResponseMatchesContract` in api/internal/testutil/openapi.go: find the route, skip request validation, validate the response with `IncludeResponseStatus`, and share the contract loading with `AssertMatchesContract`. If T005 shows that kin-openapi rejects the type array, change `Product.description` to `anyOf` in openapi.yaml and in contracts/products-api.yaml, then rerun T003 (R16).
+- [X] T007 [P] Create api/internal/testutil/postgres.go:
   - `StartPostgres(ctx)` starts `postgres:18-alpine` with testcontainers-go `modules/postgres` (`go get` both modules), for use in a package's `TestMain`, and returns the DSN and a terminate func.
   - `ResetDB(t, pool)` truncates `products`.
   - Under `-short`, the helpers make the callers skip.
-- [ ] T008 Write migration tests in api/internal/migrate/migrate_test.go (integration, `TestMain` with `testutil.StartPostgres`):
+- [X] T008 Write migration tests in api/internal/migrate/migrate_test.go (integration, `TestMain` with `testutil.StartPostgres`):
   - `Up` on an empty database creates `products`.
   - A second `Up` is a no-op.
   - Two concurrent `Up` calls both succeed (session locker).
   - `Up` against an unreachable DSN retries and returns an error once a short injected timeout expires.
-- [ ] T009 Write schema tests in api/internal/migrate/schema_test.go (raw SQL after `Up`), covering the constraints of data-model.md Product.sku, Product.name, Product.description, Product.price_cents, Product.currency, Product.stock, Product.category and Product.version, and the indexes:
+- [X] T009 Write schema tests in api/internal/migrate/schema_test.go (raw SQL after `Up`), covering the constraints of data-model.md Product.sku, Product.name, Product.description, Product.price_cents, Product.currency, Product.stock, Product.category and Product.version, and the indexes:
   - Each `CHECK` rejects an invalid row.
   - Defaults apply: Product.currency `MXN`, Product.is_active `true`, Product.version `1`, Product.id non-null and time-ordered (`uuidv7`), Product.created_at and Product.updated_at set.
   - A duplicate active SKU fails with `23505` on `products_sku_active_key`, but succeeds when the other row has Product.deleted_at set.
   - `ORDER BY name` returns `árbol, Arroz, nuez, ñame, Zapato` (R1).
   - `catalog_fold('Café')` returns `cafe` and `catalog_fold('Ñandú')` returns `nandu` (R2).
-- [ ] T010 Create the migration with `make migrate-new name=create_products` (api/migrations/<timestamp>_create_products.sql). In goose `Up`/`Down` sections:
+- [X] T010 Create the migration with `make migrate-new name=create_products` (api/migrations/<timestamp>_create_products.sql). In goose `Up`/`Down` sections:
   - `CREATE EXTENSION IF NOT EXISTS unaccent`, the ICU collation `catalog_es` and the `IMMUTABLE` function `catalog_fold` (R1, R2);
   - the `products` table per data-model.md Product.id, Product.sku, Product.name, Product.description, Product.price_cents, Product.currency, Product.stock, Product.category, Product.is_active, Product.version, Product.created_at, Product.updated_at and Product.deleted_at, with every `CHECK`;
   - the four partial indexes from data-model.md "Indexes".
 
   `Down` drops everything in reverse order.
-- [ ] T011 [P] Create api/migrations/embed.go exporting `FS embed.FS` with `//go:embed *.sql`
-- [ ] T012 Implement `Up(ctx, pool, opts)` in api/internal/migrate/migrate.go (R10, C4):
+- [X] T011 [P] Create api/migrations/embed.go exporting `FS embed.FS` with `//go:embed *.sql`
+- [X] T012 Implement `Up(ctx, pool, opts)` in api/internal/migrate/migrate.go (R10, C4):
   - goose `NewProvider(DialectPostgres, stdlib.OpenDBFromPool(pool), migrations.FS)` with `lock.NewPostgresSessionLocker()`, and no goose globals;
   - retries with backoff for up to 30 s by default (configurable for tests).
 
   `go get github.com/pressly/goose/v3@v3.30.1`, the same version as api/tools/goose.mod.
-- [ ] T013 Add `NewMigratedPool(ctx, dsn)` to api/internal/testutil/postgres.go: it opens a `pgxpool` and applies `migrate.Up`. Repository tests use it.
-- [ ] T014 Write black-box startup tests in api/cmd/api/main_test.go (integration, skipped under `-short`): build the binary into `t.TempDir()` and start it with `DATABASE_URL` from `testutil.StartPostgres`, a free `PORT` and a valid `CORS_ALLOWED_ORIGINS`. Check that `/healthz` answers 200 and that the `products` table exists, which proves migrations ran at startup. The failure path (`migrate.Up` returns an error once its retry window expires) is covered by T008.
-- [ ] T015 Call `migrate.Up` in `run()` in api/cmd/api/main.go after creating the pool and before `ListenAndServe`. If it fails, return the error so the process exits (C4). This makes the startup test pass.
+- [X] T013 Add `NewMigratedPool(ctx, dsn)` to api/internal/testutil/postgres.go: it opens a `pgxpool` and applies `migrate.Up`. Repository tests use it.
+- [X] T014 Write black-box startup tests in api/cmd/api/main_test.go (integration, skipped under `-short`): build the binary into `t.TempDir()` and start it with `DATABASE_URL` from `testutil.StartPostgres`, a free `PORT` and a valid `CORS_ALLOWED_ORIGINS`. Check that `/healthz` answers 200 and that the `products` table exists, which proves migrations ran at startup. The failure path (`migrate.Up` returns an error once its retry window expires) is covered by T008.
+- [X] T015 Call `migrate.Up` in `run()` in api/cmd/api/main.go after creating the pool and before `ListenAndServe`. If it fails, return the error so the process exits (C4). This makes the startup test pass.
 
 ### API: domain
 
-- [ ] T016 [P] Write table-driven domain tests in api/internal/domain/product_test.go, covering spec Edge Cases and FR-002 to FR-009:
+- [X] T016 [P] Write table-driven domain tests in api/internal/domain/product_test.go, covering spec Edge Cases and FR-002 to FR-009:
   - `ProductInput.Normalize`/`Validate`: SKU trim and uppercase, inner spaces and `Ñ` rejected, name lengths after trim, whitespace-only description → nil, price bounds, stock bounds, enums, defaults.
   - `ProductPatch.Validate` and `IsEmpty`.
   - `Category.Valid`, `Currency.Valid`.
   - `*ValidationError` lists every failing field with its JSON name.
-- [ ] T017 [P] Write `FuzzNormalizeSKU` in api/internal/domain/sku_fuzz_test.go:
+- [X] T017 [P] Write `FuzzNormalizeSKU` in api/internal/domain/sku_fuzz_test.go:
   - normalization is idempotent;
   - any value `ValidateSKU` accepts matches `^[A-Z0-9-]{4,32}$`;
   - it never panics.
-- [ ] T018 Implement api/internal/domain/errors.go (`ErrNotFound`, `ErrSKUAlreadyExists`, `ErrVersionConflict`) and api/internal/domain/validation.go (`ValidationError{Fields []FieldError}`, `FieldError{Field, Message}`, English messages)
-- [ ] T019 Implement api/internal/domain/product.go:
+- [X] T018 Implement api/internal/domain/errors.go (`ErrNotFound`, `ErrSKUAlreadyExists`, `ErrVersionConflict`) and api/internal/domain/validation.go (`ValidationError{Fields []FieldError}`, `FieldError{Field, Message}`, English messages)
+- [X] T019 Implement api/internal/domain/product.go:
   - `Product`, `Category`, `Currency` (constants and `Valid`), `ProductInput`, `ProductPatch`;
   - `NormalizeSKU`, `NormalizeName`, `NormalizeDescription`, `ValidateSKU`;
   - rules per data-model.md Product.sku, Product.name, Product.description, Product.price_cents, Product.currency, Product.stock, Product.category, Product.is_active and Product.version (R7, C3).
 
 ### API: HTTP foundation
 
-- [ ] T020 [P] Write tests for the error middleware in api/internal/httpapi/errors_test.go. Each case is a handler that calls `c.Error(err)`, and each response is checked for envelope shape (`details` always an array):
+- [X] T020 [P] Write tests for the error middleware in api/internal/httpapi/errors_test.go. Each case is a handler that calls `c.Error(err)`, and each response is checked for envelope shape (`details` always an array):
 
   | Error | Expected |
   |---|---|
@@ -117,36 +117,36 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
   | `*http.MaxBytesError` | 413 `PAYLOAD_TOO_LARGE` |
   | `*middleware.RateLimitedError` | 429 `RATE_LIMITED` + `Retry-After` |
   | Any other error | 500 `INTERNAL_ERROR` with the generic message and request ID; the cause and `request_id` are logged (R26) |
-- [ ] T021 [P] Write tests for `decodeJSON` and the validator in api/internal/httpapi/handler/decode_test.go:
+- [X] T021 [P] Write tests for `decodeJSON` and the validator in api/internal/httpapi/handler/decode_test.go:
   - Unknown field → `RequestError{Field: "color"}`; syntax error; wrong type, with the field; trailing data → `RequestError`.
   - `*http.MaxBytesError` passes through unchanged.
   - Rule failures → `*domain.ValidationError` with JSON names.
   - The custom tags delegate to the domain: `sku` accepts `"  abc-123 "`, and `trimmed_len` accepts 120 characters plus surrounding spaces (R7, R8, C3, C5).
-- [ ] T022 Implement api/internal/httpapi/handler/decode.go (`decodeJSON(c, v, validate)`, `RequestError`) and api/internal/httpapi/handler/validator.go:
+- [X] T022 Implement api/internal/httpapi/handler/decode.go (`decodeJSON(c, v, validate)`, `RequestError`) and api/internal/httpapi/handler/validator.go:
   - `NewValidator()` with `RegisterTagNameFunc` (JSON names) and the custom tags `sku` and `trimmed_len`, which call `internal/domain`;
   - translation of `validator.ValidationErrors` to `*domain.ValidationError`.
 
   `go get github.com/go-playground/validator/v10` as a direct dependency.
-- [ ] T023 [P] Write tests in api/internal/httpapi/middleware/security_test.go: every response carries the R13 headers
-- [ ] T024 [P] Write tests in api/internal/httpapi/middleware/bodylimit_test.go: a body of 64 KiB + 1 makes the next handler's read fail with `*http.MaxBytesError`; 64 KiB passes (R12)
-- [ ] T025 [P] Write tests in api/internal/httpapi/middleware/ratelimit_test.go (injected clock):
+- [X] T023 [P] Write tests in api/internal/httpapi/middleware/security_test.go: every response carries the R13 headers
+- [X] T024 [P] Write tests in api/internal/httpapi/middleware/bodylimit_test.go: a body of 64 KiB + 1 makes the next handler's read fail with `*http.MaxBytesError`; 64 KiB passes (R12)
+- [X] T025 [P] Write tests in api/internal/httpapi/middleware/ratelimit_test.go (injected clock):
   - 300 requests from one IP pass and the 301st is aborted with `*RateLimitedError` carrying `RetryAfter`.
   - Another IP is unaffected.
   - Tokens refill at 5/s.
   - The janitor evicts IPs idle for more than 3 min and stops when its context is canceled (R11).
-- [ ] T026 [P] Implement `SecurityHeaders()` in api/internal/httpapi/middleware/security.go (R13)
-- [ ] T027 [P] Implement `BodyLimit(64 << 10)` with `http.MaxBytesReader` in api/internal/httpapi/middleware/bodylimit.go (R12)
-- [ ] T028 [P] Implement `RateLimit(ctx, opts)` in api/internal/httpapi/middleware/ratelimit.go: a per-IP `rate.Limiter` (5/s, burst 300) keyed by `c.ClientIP()`, a janitor, and `RateLimitedError` reported with `c.Error` + `Abort`. `go get golang.org/x/time` (R11).
-- [ ] T029 Implement the error middleware in api/internal/httpapi/errors.go, the single domain → HTTP mapping: it reads `c.Errors.Last()` after `c.Next()` and maps the types tested in T020, including `handler.RequestError` (T022) and `middleware.RateLimitedError` (T028), which it needs to compile. Add the code constants (`PAYLOAD_TOO_LARGE`, `RATE_LIMITED`, …) and keep the existing `recovery`.
-- [ ] T030 [P] Write tests in api/internal/config/config_test.go: `CLIENT_IP_HEADER` is optional (default empty) and is read when set
-- [ ] T031 Add `ClientIPHeader string` (`env:"CLIENT_IP_HEADER"`) to `Config` in api/internal/config/config.go
-- [ ] T032 Write router tests in api/internal/httpapi/router_test.go (update `newRouter` to the new signature):
+- [X] T026 [P] Implement `SecurityHeaders()` in api/internal/httpapi/middleware/security.go (R13)
+- [X] T027 [P] Implement `BodyLimit(64 << 10)` with `http.MaxBytesReader` in api/internal/httpapi/middleware/bodylimit.go (R12)
+- [X] T028 [P] Implement `RateLimit(ctx, opts)` in api/internal/httpapi/middleware/ratelimit.go: a per-IP `rate.Limiter` (5/s, burst 300) keyed by `c.ClientIP()`, a janitor, and `RateLimitedError` reported with `c.Error` + `Abort`. `go get golang.org/x/time` (R11).
+- [X] T029 Implement the error middleware in api/internal/httpapi/errors.go, the single domain → HTTP mapping: it reads `c.Errors.Last()` after `c.Next()` and maps the types tested in T020, including `handler.RequestError` (T022) and `middleware.RateLimitedError` (T028), which it needs to compile. Add the code constants (`PAYLOAD_TOO_LARGE`, `RATE_LIMITED`, …) and keep the existing `recovery`.
+- [X] T030 [P] Write tests in api/internal/config/config_test.go: `CLIENT_IP_HEADER` is optional (default empty) and is read when set
+- [X] T031 Add `ClientIPHeader string` (`env:"CLIENT_IP_HEADER"`) to `Config` in api/internal/config/config.go
+- [X] T032 Write router tests in api/internal/httpapi/router_test.go (update `newRouter` to the new signature):
   - security headers on every response;
   - `/healthz` returns 200 for 400 consecutive requests (never rate-limited);
   - a test route added to `/api/v1` through a route registrar returns 429 at request 301;
   - `X-Forwarded-For` is ignored;
   - with `ClientIPHeader: "X-Real-IP"`, two values get separate buckets.
-- [ ] T033 Update api/internal/httpapi/router.go and its wiring in api/cmd/api/main.go:
+- [X] T033 Update api/internal/httpapi/router.go and its wiring in api/cmd/api/main.go:
   - `NewRouter(ctx, logger, cfg RouterConfig, health, api ...func(*gin.RouterGroup))`: `RouterConfig` holds the allowed origins and the client IP header, and each `api` registrar adds routes to the `/api/v1` group (the product routes later, a test route in the router tests);
   - `SetTrustedProxies(nil)` and `TrustedPlatform = cfg.ClientIPHeader`;
   - the error middleware and `SecurityHeaders` globally;
@@ -154,42 +154,42 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### Web: foundation
 
-- [ ] T034 [P] Write tests in web/src/api/errors.test.ts:
+- [X] T034 [P] Write tests in web/src/api/errors.test.ts:
   - `toApiError(response, body)` builds an `ApiError` from the envelope (`status`, `code`, `details`) and reads `Retry-After`;
   - a non-JSON body or network failure gives `code: "INTERNAL_ERROR"`.
-- [ ] T035 [P] Implement web/src/api/errors.ts (`ApiError`, `toApiError`) per data-model.md ApiError (R19)
-- [ ] T036 [P] Write tests in web/src/features/products/format.test.ts, with the time zone pinned to `America/Mexico_City`:
+- [X] T035 [P] Implement web/src/api/errors.ts (`ApiError`, `toApiError`) per data-model.md ApiError (R19)
+- [X] T036 [P] Write tests in web/src/features/products/format.test.ts, with the time zone pinned to `America/Mexico_City`:
   - `formatPrice(129990, "MXN")` → `$1,299.90 MXN`, `formatPrice(129990, "USD")` → `$1,299.90 USD`, `formatPrice(19990, "MXN")` → `$199.90 MXN`;
   - `formatDateTime` → `25 nov 2026, 14:30`.
-- [ ] T037 [P] Implement `formatPrice` (`currencyDisplay: "narrowSymbol"` + the code) and `formatDateTime` (`es-MX`, `dateStyle: "medium"`, `timeStyle: "short"`, `hourCycle: "h23"`) in web/src/features/products/format.ts (C1, R22)
-- [ ] T038 [P] Create web/src/features/products/messages.ts with:
+- [X] T037 [P] Implement `formatPrice` (`currencyDisplay: "narrowSymbol"` + the code) and `formatDateTime` (`es-MX`, `dateStyle: "medium"`, `timeStyle: "short"`, `hourCycle: "h23"`) in web/src/features/products/format.ts (C1, R22)
+- [X] T038 [P] Create web/src/features/products/messages.ts with:
   - every text in spec FR-046, including the comma hint (C8);
   - the per-field rule messages (FR-047) for data-model.md Product.sku, Product.name, Product.description, Product.price_cents, Product.stock, Product.category and Product.currency;
   - the Spanish category labels (data-model.md Product.category) and status labels ("Activo"/"Inactivo").
-- [ ] T039 [P] Create web/src/features/products/query-keys.ts (`all`, `lists()`, `list(params)`, `details()`, `detail(id)`) (R20)
-- [ ] T040 [P] Create web/src/features/products/testing.ts:
+- [X] T039 [P] Create web/src/features/products/query-keys.ts (`all`, `lists()`, `list(params)`, `details()`, `detail(id)`) (R20)
+- [X] T040 [P] Create web/src/features/products/testing.ts:
   - `buildProduct(overrides)`, typed with `components["schemas"]["Product"]`;
   - MSW handler factories for GET (list and detail), POST, PATCH and DELETE, including error envelopes, all built with `apiUrl`.
-- [ ] T041 [P] Write tests in web/src/components/ui/PageState.test.tsx: it renders the title, text and optional action, and passes `axe`
-- [ ] T042 [P] Implement web/src/components/ui/PageState.tsx: a generic Mantine composition for empty, error and not-found states, with no business logic
-- [ ] T043 Set up the shared web test infrastructure:
+- [X] T041 [P] Write tests in web/src/components/ui/PageState.test.tsx: it renders the title, text and optional action, and passes `axe`
+- [X] T042 [P] Implement web/src/components/ui/PageState.tsx: a generic Mantine composition for empty, error and not-found states, with no business logic
+- [X] T043 Set up the shared web test infrastructure:
   - Move the route objects to web/src/app/routes.tsx (the file exports only the route array, to keep `react-refresh` happy).
   - Add `renderRoute(path)` to web/src/test/render.tsx: the same providers as `renderWithProviders`, plus `createMemoryRouter(routes)` and `RouterProvider`. It returns the `router` so tests can navigate and go back.
   - Create web/src/test/axe.ts exporting `axe = configureAxe({ runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"] } })` (R24), and switch web/src/app/App.test.tsx and web/src/features/status/pages/StatusPage.test.tsx to import it. Every later test imports `axe` from there.
-- [ ] T044 Write routing tests in web/src/app/App.test.tsx (update the existing one):
+- [X] T044 Write routing tests in web/src/app/App.test.tsx (update the existing one):
   - `/` redirects to `/products`;
   - `/status` shows the status page in Spanish;
   - an unknown path shows "Página no encontrada" with "Volver al catálogo";
   - the header shows "Catálogo", "Nuevo producto" and "Estado", with `aria-current="page"` on the active link;
   - `axe` passes.
-- [ ] T045 [P] Update web/src/features/status/pages/StatusPage.test.tsx to expect Spanish texts (FR-045; the requirement changed in the spec first)
-- [ ] T046 Translate web/src/features/status/pages/StatusPage.tsx, web/src/features/status/components/StatusIndicator.tsx and the render fallback in web/src/app/App.tsx to Spanish
-- [ ] T047 Implement web/src/app/AppLayout.tsx (black header with white text per web/CLAUDE.md Colors, `NavLink`s, `<Outlet>`) and web/src/app/NotFoundPage.tsx (with `PageState`). Register in web/src/app/routes.tsx:
+- [X] T045 [P] Update web/src/features/status/pages/StatusPage.test.tsx to expect Spanish texts (FR-045; the requirement changed in the spec first)
+- [X] T046 Translate web/src/features/status/pages/StatusPage.tsx, web/src/features/status/components/StatusIndicator.tsx and the render fallback in web/src/app/App.tsx to Spanish
+- [X] T047 Implement web/src/app/AppLayout.tsx (black header with white text per web/CLAUDE.md Colors, `NavLink`s, `<Outlet>`) and web/src/app/NotFoundPage.tsx (with `PageState`). Register in web/src/app/routes.tsx:
   - the layout;
   - `/` → `<Navigate to="/products" replace>`;
   - `/status`;
   - `*`.
-- [ ] T048 [P] Set `lang="es-MX"` and `<title>Catálogo de productos</title>` in web/index.html
+- [X] T048 [P] Set `lang="es-MX"` and `<title>Catálogo de productos</title>` in web/index.html
 
 **Checkpoint**: The foundation is ready. `make test-unit` and `make test-api` pass. Until US2 lands, `/products` shows "Página no encontrada".
 
