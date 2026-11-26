@@ -21,18 +21,7 @@ Makefile
 
 ## Commands
 
-| Command | Purpose |
-|---|---|
-| `make up` | Start the stack (docker compose) |
-| `make test` | All tests, including integration (testcontainers, needs Docker) |
-| `make test-unit` | Fast TDD loop: backend with `-short` + frontend |
-| `make lint` / `make fmt` | Lint / format both sides |
-| `make sqlc` | Regenerate sqlc code after editing `api/queries/` or migrations |
-| `make migrate-new name=...` | Create a goose migration |
-| `make gen-types` | Regenerate web types from `openapi.yaml` |
-| `make seed` | Seed the database |
-
-Running a single test: see `api/CLAUDE.md` and `web/CLAUDE.md`.
+`make help` lists every command. Environment: `make up`, `make down`, `make db`, `make dev-api`, `make dev-web`. Tests: `make test` (all), `make test-unit` (backend with `-short` + frontend), `make test-api`, `make test-web`. Quality: `make lint`, `make lint-api`, `make lint-web`, `make fmt`. Generation: `make gen-types`, `make migrate-new name=...`. Every new command goes into the Makefile with its `##` description.
 
 ## Domain: `Product`
 
@@ -65,6 +54,7 @@ Running a single test: see `api/CLAUDE.md` and `web/CLAUDE.md`.
 - `PATCH` and `DELETE` check `version`; a mismatch returns `409 VERSION_CONFLICT`.
 - Single error shape: `{ "error": { "code", "message", "details": [{ "field", "message" }] } }`. Codes: `VALIDATION_ERROR`, `NOT_FOUND`, `SKU_ALREADY_EXISTS`, `VERSION_CONFLICT`, `INSUFFICIENT_STOCK`, `RATE_LIMITED`, `INTERNAL_ERROR`.
 - 500s never expose internals: generic message + request ID; details go only to logs.
+- Health probes live at the host root, outside `/api/v1`: `GET /healthz` (process alive) and `GET /readyz` (database ping; 503 when unavailable). They use their own `{ status, checks }` shape, not the error envelope. `VITE_API_URL` is the API host root.
 
 ## Workflow
 
@@ -73,6 +63,7 @@ Running a single test: see `api/CLAUDE.md` and `web/CLAUDE.md`.
 - Features are vertical slices (API + web), worked from the repo root.
 - Implement nothing that is not in the spec. When a requirement changes: update the spec first, then the tests, then the code.
 - A feature's `contracts/` describes contract changes; every plan includes a task to apply them to `openapi.yaml` and regenerate types.
+- Spec Kit applies to features. Infrastructure and tooling work (`chore`, `ci`) does not need a spec, but still follows TDD.
 
 ### TDD (mandatory)
 - Write tests **before** code, derived from the spec's acceptance criteria: red → green → refactor. Confirm each new test fails for the right reason before implementing.
@@ -108,3 +99,4 @@ Every change includes, in the same commit/PR, updates to whatever it affects: `o
   - API: `sqlc diff`, golangci-lint (format + lint), `govulncheck`, `go test -race` (including integration), build, docker build.
   - Web: generated-types check, `pnpm format:check`, `pnpm lint`, typecheck, `pnpm audit`, tests, build.
 - Deploy: API + Postgres on Railway (Wait for CI, health check on `/healthz`); web on Vercel (SPA rewrite to `index.html`).
+- The job names in `.github/workflows/ci.yml` (`OpenAPI`, `API (Go)`, `Web (React)`) are the required checks of `main`: renaming one breaks the branch protection. Vercel does not wait for CI; only merges of PRs with green checks reach `main`.
