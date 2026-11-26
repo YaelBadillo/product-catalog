@@ -30,6 +30,7 @@ type TestingT interface {
 func AssertMatchesContract(t TestingT, req *http.Request, rec *httptest.ResponseRecorder) {
 	t.Helper()
 	ctx := req.Context()
+	rewindBody(t, req)
 	reqInput := findRoute(t, req)
 	require.NoError(t, openapi3filter.ValidateRequest(ctx, reqInput), "request does not match openapi.yaml")
 	validateResponse(ctx, t, reqInput, rec)
@@ -42,6 +43,18 @@ func AssertMatchesContract(t TestingT, req *http.Request, rec *httptest.Response
 func AssertResponseMatchesContract(t TestingT, req *http.Request, rec *httptest.ResponseRecorder) {
 	t.Helper()
 	validateResponse(req.Context(), t, findRoute(t, req), rec)
+}
+
+// rewindBody restores a body the handler already read, when the request can
+// produce it again (req.GetBody).
+func rewindBody(t TestingT, req *http.Request) {
+	t.Helper()
+	if req.GetBody == nil {
+		return
+	}
+	body, err := req.GetBody()
+	require.NoError(t, err, "rewind request body")
+	req.Body = body
 }
 
 func findRoute(t TestingT, req *http.Request) *openapi3filter.RequestValidationInput {

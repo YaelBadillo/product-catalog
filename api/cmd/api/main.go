@@ -21,6 +21,8 @@ import (
 	"github.com/YaelBadillo/product-catalog/api/internal/httpapi/handler"
 	"github.com/YaelBadillo/product-catalog/api/internal/httpapi/middleware"
 	"github.com/YaelBadillo/product-catalog/api/internal/migrate"
+	"github.com/YaelBadillo/product-catalog/api/internal/repository"
+	"github.com/YaelBadillo/product-catalog/api/internal/service"
 )
 
 const (
@@ -83,13 +85,17 @@ func run(logger *slog.Logger) error {
 	go limiter.RunJanitor(ctx, time.Minute)
 
 	health := handler.NewHealth(pool, readinessTimeout, logger)
+	products := handler.NewProducts(
+		service.NewProducts(repository.NewProducts(pool)),
+		handler.NewValidator(),
+	)
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.HTTP.Port),
 		Handler: httpapi.NewRouter(logger, httpapi.RouterConfig{
 			AllowedOrigins: cfg.CORSAllowedOrigins,
 			ClientIPHeader: cfg.ClientIPHeader,
 			RateLimiter:    limiter,
-		}, health),
+		}, health, products.Register),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
