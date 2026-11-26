@@ -1,16 +1,18 @@
 import { Alert, Button, Container, Stack, Text, Title } from "@mantine/core";
 import { CircleAlert } from "lucide-react";
+import { useDocumentTitle } from "../../../lib/use-document-title";
 import { StatusIndicator } from "../components/StatusIndicator";
 import { useSystemStatus } from "../hooks";
 
 export function StatusPage() {
   const { data: status, isFetching, refetch } = useSystemStatus();
+  useDocumentTitle("Estado del servicio");
 
   return (
     <Container component="main" size="xs" py="xl">
       <Stack gap="md">
         <Title order={1} size="h2">
-          System status
+          Estado del servicio
         </Title>
         {status ? (
           <>
@@ -19,7 +21,7 @@ export function StatusPage() {
                 variant="outline"
                 color="red.9"
                 icon={<CircleAlert aria-hidden="true" />}
-                title="The API is not responding."
+                title="La API no responde."
               >
                 <Button
                   onClick={() => {
@@ -27,16 +29,16 @@ export function StatusPage() {
                   }}
                   disabled={isFetching}
                 >
-                  Retry
+                  Reintentar
                 </Button>
               </Alert>
             )}
             <StatusIndicator name="API" state={status.api} />
-            <StatusIndicator name="Database" state={status.database} />
+            <StatusIndicator name="Base de datos" state={status.database} />
           </>
         ) : (
           <Text role="status" c="dimmed">
-            Checking status…
+            Comprobando el estado…
           </Text>
         )}
       </Stack>

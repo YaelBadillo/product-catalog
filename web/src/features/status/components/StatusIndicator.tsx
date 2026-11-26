@@ -6,17 +6,17 @@ import type { ServiceState } from "../api";
 // The icon is decorative: the label always states the service state.
 const presentation = {
   operational: {
-    label: "Operational",
+    label: "En funcionamiento",
     Icon: CircleCheck,
     color: "var(--mantine-color-green-8)",
   },
   unavailable: {
-    label: "Unavailable",
+    label: "No disponible",
     Icon: CircleX,
     color: "var(--mantine-color-red-9)",
   },
   unknown: {
-    label: "Unknown",
+    label: "Desconocido",
     Icon: CircleHelp,
     color: "var(--mantine-color-gray-5)",
   },

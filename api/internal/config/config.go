@@ -13,6 +13,9 @@ type Config struct {
 	HTTP               HTTP
 	DatabaseURL        string   `env:"DATABASE_URL,required,notEmpty"`
 	CORSAllowedOrigins []string `env:"CORS_ALLOWED_ORIGINS,required,notEmpty" envSeparator:","`
+	// ClientIPHeader is the header the platform's edge sets to the client IP
+	// (X-Real-IP on Railway). Empty: use the connection's remote address.
+	ClientIPHeader string `env:"CLIENT_IP_HEADER"`
 }
 
 // HTTP is the HTTP server configuration.

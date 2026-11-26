@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import "vitest-axe/extend-expect";
+import { notifications } from "@mantine/notifications";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { server } from "./server";
@@ -44,6 +45,8 @@ beforeAll(() => {
 // RTL only auto-cleans up when `afterEach` is a global; Vitest globals are off.
 afterEach(() => {
   cleanup();
+  // Mantine keeps notifications in a global store.
+  notifications.clean();
   server.resetHandlers();
 });
 
