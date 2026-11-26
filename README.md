@@ -24,18 +24,19 @@ cp .env.example .env   # optional: compose has local defaults
 make up                # Postgres, API and web, waiting until they are healthy
 ```
 
-- Web: <http://localhost:3000> (status page: API and database availability)
-- API: <http://localhost:8080> (`/healthz`, `/readyz`)
+- Web: <http://localhost:3000> (product catalog; service status at `/status`)
+- API: <http://localhost:8080> (`/api/v1/products`, `/healthz`, `/readyz`, Swagger UI at `/docs`)
 - Postgres: `localhost:5432`
 
-`make down` stops everything.
+`make seed` loads 20 sample products (running it again creates no duplicates). `make down` stops everything.
 
 ### Development mode
 
 ```sh
 cp .env.example .env
 make db        # Postgres only
-make dev-api   # API with go run on :8080
+make dev-api   # API with go run on :8080 (applies migrations at startup)
+make seed      # 20 sample products
 make dev-web   # Vite dev server on :5173
 ```
 
@@ -43,7 +44,21 @@ The Makefile loads `.env` and exports its variables to these commands.
 
 ## Commands
 
-`make help` lists every command with its description: environment (`up`, `down`, `db`, `dev-api`, `dev-web`), tests (`test`, `test-unit`, `test-api`, `test-web`), quality (`lint`, `lint-api`, `lint-web`, `fmt`) and generation (`gen-types`, `migrate-new name=...`).
+`make help` lists every command with its description: environment (`up`, `down`, `db`, `dev-api`, `dev-web`), tests (`test`, `test-unit`, `test-api`, `test-web`), quality (`lint`, `lint-api`, `lint-web`, `fmt`) data (`seed`) and generation (`gen-types`, `sqlc`, `sync-openapi`, `migrate-new name=...`).
+
+## API
+
+`openapi.yaml` is the contract; the running API serves it as Swagger UI at `/docs`.
+
+| Method | Path | Success | Errors |
+| --- | --- | --- | --- |
+| GET | `/api/v1/products` | 200 | 400 |
+| GET | `/api/v1/products/{id}` | 200 | 400, 404 |
+| POST | `/api/v1/products` | 201 + `Location` | 400, 409, 413, 422 |
+| PATCH | `/api/v1/products/{id}` | 200 | 400, 404, 409, 413, 422 |
+| DELETE | `/api/v1/products/{id}?version=N` | 204 | 400, 404, 409 |
+
+Every `/api/v1` route can also answer 429 and 500. Errors share one shape: `{ "error": { "code", "message", "details": [{ "field", "message" }] } }`.
 
 ## Environment variables
 
@@ -56,6 +71,7 @@ The Makefile loads `.env` and exports its variables to these commands.
 | `PORT` | API | `8080` | HTTP port. |
 | `CORS_ALLOWED_ORIGINS` | API | required | Comma-separated origins, `http(s)://host[:port]`. `*` is rejected. |
 | `GIN_MODE` | API | `debug` | Use `release` in production. |
+| `CLIENT_IP_HEADER` | API | empty | Header the platform's edge sets to the client IP, used for rate limiting. Empty uses the connection's address; `X-Real-IP` on Railway. |
 | `VITE_API_URL` | web (build time) | required | Root URL of the API host, e.g. `http://localhost:8080`. |
 
 ## Deployment
@@ -75,6 +91,7 @@ Every merge to `main` deploys the API to Railway and the web to Vercel.
    - `CORS_ALLOWED_ORIGINS` = the web's production URL, e.g. `https://<project>.vercel.app`.
    - `PORT` = `8080`.
    - `GIN_MODE` = `release`.
+   - `CLIENT_IP_HEADER` = `X-Real-IP` (Railway's edge overwrites it with the client IP; `X-Forwarded-For` is never trusted). Check it on the real deployment: if every request shares one IP, the rate limit applies to everyone at once.
 4. Generate a public domain under **Networking**. It is the web's `VITE_API_URL`.
 
 ### Web on Vercel
@@ -102,7 +119,7 @@ Protect `main` (Settings → Branches):
 
 - **One contract.** `openapi.yaml` (OpenAPI 3.1) drives both sides: the web generates its types from it (CI fails if they are stale) and API handler tests validate every response against it with kin-openapi.
 - **Health probes at the host root.** `/healthz` and `/readyz` sit outside `/api/v1` because they serve platforms, not API clients. `/readyz` answers 503 with its own `{ status, checks }` shape instead of the error envelope.
-- **Readiness without blocking startup.** `/readyz` pings Postgres with a 2 s timeout, and `pgxpool` connects lazily, so the API starts and reports the database as unavailable instead of crashing.
+- **Migrations before serving.** The binary embeds the goose migrations and applies them at startup, holding a Postgres session lock so two instances never migrate at once. It waits up to 30 s for the database and exits if it stays unreachable, so Railway never promotes a deployment with an outdated schema; the previous one keeps serving. After startup, `/readyz` pings Postgres with a 2 s timeout and reports it as unavailable instead of crashing.
 - **`Pinger` instead of a service.** The health handler depends on a one-method interface it defines; a dependency check is infrastructure, not domain, so it skips the service layer.
 - **Safe failures.** A custom recovery answers panics with a generic `INTERNAL_ERROR` and the request ID; the panic and stack trace go only to the logs.
 - **Request IDs.** An incoming `X-Request-ID` is reused only if it matches `[A-Za-z0-9-]{1,64}`, to prevent log injection; otherwise one is generated with `crypto/rand`.
@@ -119,4 +136,10 @@ Protect `main` (Settings → Branches):
 - **Deploy gating.** Railway waits for CI on `main`; Vercel relies on branch protection, since it does not wait for checks.
 - **Spec Kit scope.** Specs cover user-facing features; infrastructure and tooling work such as this foundation needs none and is planned in Claude Code plan mode on `chore/...` branches. The rules live in the constitution (`.specify/memory/constitution.md`).
 - **Mandatory tests in Spec Kit.** Stock Spec Kit treats test tasks as optional; a `tasks-template.md` override and an edit to the `speckit-tasks` skill make them mandatory and first in every phase, as TDD requires.
-- **Deferred to the first feature.** Rate limiting, body size limit, security headers, Swagger UI at `/docs`, migrations wiring, `make sqlc`, `make seed` and the web header (its colors are already defined).
+- **Spanish order and accent-insensitive search in Postgres.** An ICU collation (`catalog_es`, since Alpine's musl has no libc locales) orders names as Spanish does (case and accents ignored, ñ after n), and an `IMMUTABLE` wrapper over `unaccent` folds name, SKU and the search text; `%`, `_` and `\` match literally. Sorting and filtering stay in SQL so pagination is exact.
+- **Time-ordered ids.** Products use Postgres 18's `uuidv7()`, which also gives a stable tiebreaker: no product repeats or is skipped across pages.
+- **Optimistic concurrency and soft delete.** Every product carries a `version`; `PATCH` and `DELETE` apply only if it matches (409 otherwise). Deletion sets `deleted_at`, and a partial unique index frees the SKU.
+- **One place for the rules.** The domain normalizes (trim, uppercase SKU) and validates once; the request validator and the service both call it, so the API, the seed and the database `CHECK`s agree.
+- **Platform protections.** `/api/v1` is rate-limited per IP (5/s with bursts of 300, `golang.org/x/time/rate`) and capped at 64 KiB bodies; every response carries security headers. Health probes and `/docs` are never rate-limited.
+- **Docs without vendoring.** `/docs` loads Swagger UI from jsDelivr pinned with SRI hashes under its own CSP, over a copy of `openapi.yaml` embedded in the binary (`make sync-openapi`; CI checks it stays identical).
+- **Spanish UI.** Every user-facing text is Mexican Spanish in one file (`messages.ts`), prices show the currency code (`$1,299.90 MXN`), and the catalog view lives in the URL, so links and Back reproduce it.

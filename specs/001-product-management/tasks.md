@@ -464,20 +464,20 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 **Purpose**: Sample data, browsable docs, performance, documentation in sync (VIII), and final validation.
 
-- [ ] T108 [P] Write tests in api/internal/seed/seed_test.go (real service, fake repository):
+- [X] T108 [P] Write tests in api/internal/seed/seed_test.go (real service, fake repository):
   - the 20 products pass the domain rules;
   - they cover all 5 categories, both currencies and at least 4 inactive products, and include names with accents and ñ;
   - a second `Run` skips `ErrSKUAlreadyExists` without returning an error (R15).
-- [ ] T109 Extend api/cmd/api/main_test.go: after `testutil.ResetDB` on the package's container, `api seed` exits 0 and leaves 20 products, and a second run also exits 0 and still leaves 20 (R15)
-- [ ] T110 Implement api/internal/seed/products.go and api/internal/seed/seed.go (`Run(ctx, creator)`), the `seed` subcommand in api/cmd/api/main.go (migrate → repository → service → `seed.Run`), and the `seed` target in Makefile (`cd $(API_DIR) && go run ./cmd/api seed`, with a `##` description)
-- [ ] T111 [P] Write tests in api/internal/apidocs/apidocs_test.go:
+- [X] T109 Extend api/cmd/api/main_test.go: after `testutil.ResetDB` on the package's container, `api seed` exits 0 and leaves 20 products, and a second run also exits 0 and still leaves 20 (R15)
+- [X] T110 Implement api/internal/seed/products.go and api/internal/seed/seed.go (`Run(ctx, creator)`), the `seed` subcommand in api/cmd/api/main.go (migrate → repository → service → `seed.Run`), and the `seed` target in Makefile (`cd $(API_DIR) && go run ./cmd/api seed`, with a `##` description)
+- [X] T111 [P] Write tests in api/internal/apidocs/apidocs_test.go:
   - `GET /docs` → 200 `text/html`, with its own CSP allowing `cdn.jsdelivr.net` and `swagger-ui-dist` pinned with `integrity`;
   - `GET /docs/openapi.yaml` → the embedded contract, byte-identical to the root `openapi.yaml`;
   - both are validated against the contract and aren't rate-limited.
-- [ ] T112 Implement api/internal/apidocs/apidocs.go (embedding `openapi.yaml` and `index.html`) and api/internal/apidocs/index.html, and register `/docs` and `/docs/openapi.yaml` in api/internal/httpapi/router.go outside `/api/v1` (R14)
-- [ ] T113 [P] Write `BenchmarkList` in api/internal/repository/products_bench_test.go: 10,000 products, then list, filter, search and sort. Record the p95 in the PR description (SC-002: server target < 200 ms).
-- [ ] T114 [P] Update the root CLAUDE.md per plan.md "Documentation updated in the same PR": domain (`currency` MXN|USD, bounds); API table (errors and `DELETE ?version=`); list parameters (`currency`, range rule); error codes (remove `INSUFFICIENT_STOCK`, add `PAYLOAD_TOO_LARGE`); commands (`make sqlc`, `make seed`, `make sync-openapi`)
-- [ ] T115 [P] Update api/CLAUDE.md:
+- [X] T112 Implement api/internal/apidocs/apidocs.go (embedding `openapi.yaml` and `index.html`) and api/internal/apidocs/index.html, and register `/docs` and `/docs/openapi.yaml` in api/internal/httpapi/router.go outside `/api/v1` (R14)
+- [X] T113 [P] Write `BenchmarkList` in api/internal/repository/products_bench_test.go: 10,000 products, then list, filter, search and sort. Record the p95 in the PR description (SC-002: server target < 200 ms).
+- [X] T114 [P] Update the root CLAUDE.md per plan.md "Documentation updated in the same PR": domain (`currency` MXN|USD, bounds); API table (errors and `DELETE ?version=`); list parameters (`currency`, range rule); error codes (remove `INSUFFICIENT_STOCK`, add `PAYLOAD_TOO_LARGE`); commands (`make sqlc`, `make seed`, `make sync-openapi`)
+- [X] T115 [P] Update api/CLAUDE.md:
   - remove `ErrInsufficientStock`;
   - the middleware and `/docs` are no longer pending;
   - `decodeJSON` with an injected validator instead of `ShouldBindJSON` (C5), and the domain owning normalization (C3);
@@ -486,7 +486,7 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
   - packages `migrate`, `seed`, `apidocs`, and the new `testutil` helpers;
   - routes: `NewRouter` mounts `api ...func(*gin.RouterGroup)` registrars on `/api/v1`, and each handler exposes `Register`;
   - testing: black-box tests in api/cmd/api/main_test.go build and run the binary (startup migrations, `seed`).
-- [ ] T116 [P] Update web/CLAUDE.md:
+- [X] T116 [P] Update web/CLAUDE.md:
   - UI copy in es-MX addressing the user as tú (`messages.ts`);
   - price "entered in currency units";
   - the `formatPrice`/`formatDateTime` rules;
@@ -494,14 +494,14 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
   - optimistic updates for delete only (C7);
   - the responsive list (C6);
   - in Testing: `renderRoute`, and `axe` imported from `src/test/axe.ts` (WCAG 2.2 AA tags) instead of from `vitest-axe`.
-- [ ] T117 [P] Update README.md:
+- [X] T117 [P] Update README.md:
   - endpoints and `/docs`;
   - `make seed`;
   - `CLIENT_IP_HEADER` in the env table, and a Railway step (`X-Real-IP`);
   - new technical decisions (collation, unaccent, uuidv7, rate limit, migrations at startup, docs);
   - remove the "Deferred to the first feature" line.
 - [ ] T118 [P] Add `CLIENT_IP_HEADER=` to the "API" section of .env.example, after `GIN_MODE`: empty locally, with a comment saying to set it to `X-Real-IP` on Railway. web/.env.example doesn't change, because there are no new `VITE_*` variables.
-- [ ] T119 Run `make fmt`, `make lint` and `make test`, and the generated-code checks in quickstart.md "Automated checks" (`make sqlc`, `make gen-types` and `make sync-openapi` with no diff)
+- [X] T119 Run `make fmt`, `make lint` and `make test`, and the generated-code checks in quickstart.md "Automated checks" (`make sqlc`, `make gen-types` and `make sync-openapi` with no diff)
 - [ ] T120 Run the quickstart.md validation: the 25 API scenarios, the web walkthrough per story at 1280 px and 360 px, and keyboard plus screen reader. Fix anything found by writing the failing test first.
 
 ---
