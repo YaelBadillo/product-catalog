@@ -358,26 +358,26 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T082 [P] [US3] Write repository tests in api/internal/repository/products_update_test.go:
+- [X] T082 [P] [US3] Write repository tests in api/internal/repository/products_update_test.go:
   - `Update` changes only the provided fields;
   - `description_set` with nil sets NULL;
   - `version` +1 and `updated_at` change;
   - a wrong version → `ErrVersionConflict` with the row unchanged;
   - missing or deleted → `ErrNotFound`;
   - **concurrency**: two goroutines update with the same version, and exactly one succeeds while the other gets `ErrVersionConflict`.
-- [ ] T083 [P] [US3] Write service tests in api/internal/service/products_update_test.go:
+- [X] T083 [P] [US3] Write service tests in api/internal/service/products_update_test.go:
   - `Update` normalizes and validates the patch (domain);
   - an empty patch → `*domain.ValidationError`;
   - a blank description clears it;
   - `ErrVersionConflict` and `ErrNotFound` propagate.
-- [ ] T084 [P] [US3] Write handler tests in api/internal/httpapi/products_update_test.go (contract-validated). Cases are quickstart.md API scenarios 13 to 17:
+- [X] T084 [P] [US3] Write handler tests in api/internal/httpapi/products_update_test.go (contract-validated). Cases are quickstart.md API scenarios 13 to 17:
   - `PATCH` → 200;
   - 400 for `sku` in the body, malformed JSON and an invalid UUID;
   - 422 for `version` alone and for invalid fields;
   - 404;
   - 409 `VERSION_CONFLICT`.
-- [ ] T085 [P] [US3] Write tests for `toPatchBody(dirtyFields, values, version)` in web/src/features/products/schema.test.ts: only changed fields plus `version`; an emptied description → `""`; price in cents
-- [ ] T086 [P] [US3] Write tests in web/src/features/products/pages/ProductEditPage.test.tsx, covering US3 scenarios 1 to 8:
+- [X] T085 [P] [US3] Write tests for `toPatchBody(dirtyFields, values, version)` in web/src/features/products/schema.test.ts: only changed fields plus `version`; an emptied description → `""`; price in cents
+- [X] T086 [P] [US3] Write tests in web/src/features/products/pages/ProductEditPage.test.tsx, covering US3 scenarios 1 to 8:
   - **Form**: prefilled, with a read-only SKU; "Guardar" is disabled until something changes.
   - **Save**: the PATCH carries only the dirty fields plus `version`, then "Cambios guardados" and the detail updated. "Guardar" is disabled while the request is pending (FR-039).
   - **Values**: an empty description sends `""`; changing the currency keeps the amount.
@@ -389,14 +389,14 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### Implementation for User Story 3
 
-- [ ] T087 [US3] Write the `UpdateProduct` query (`COALESCE(sqlc.narg)`, `description_set`, `WHERE id AND version AND deleted_at IS NULL`, `version + 1`, `updated_at = now()`, `RETURNING`) and the `ProductExists` query in api/queries/products.sql, then run `make sqlc` (R5)
-- [ ] T088 [US3] Implement `Update` in api/internal/repository/products.go: when 0 rows change, run `ProductExists` → `ErrNotFound` or `ErrVersionConflict` (R6)
-- [ ] T089 [US3] Implement `Update` in api/internal/service/products.go (`domain.ProductPatch`; `IsEmpty` → `ValidationError`) and add it to `ProductRepository`
-- [ ] T090 [US3] Implement the `Update` handler and the `UpdateProductRequest` DTO in api/internal/httpapi/handler/products.go and api/internal/httpapi/handler/dto.go, and add `PATCH /products/:id` to `(*Products).Register`. The DTO has pointers per data-model.md Product.name, Product.description, Product.price_cents, Product.currency, Product.stock, Product.category and Product.is_active, a required Product.version, and no `sku`.
-- [ ] T091 [P] [US3] Implement `toPatchBody` in web/src/features/products/schema.ts, per data-model.md ProductPatchBody
-- [ ] T092 [US3] Implement `updateProduct` in web/src/features/products/api.ts and `useUpdateProduct` in web/src/features/products/hooks.ts. There's no optimistic update (C7): on success, `setQueryData(detail)` and invalidate `lists()`.
-- [ ] T093 [P] [US3] Implement web/src/features/products/components/ConflictAlert.tsx: `<Alert variant="outline" color="red.9">` with the FR-046 text and a "Recargar" button that receives `onReload`
-- [ ] T094 [US3] Implement web/src/features/products/pages/ProductEditPage.tsx (`ProductForm` in edit mode, `ConflictAlert`, not-found, `document.title`) and register `/products/:id/edit` in web/src/app/routes.tsx. Add the "Editar" action to ProductDetailPage.tsx, ProductTable.tsx and ProductCardList.tsx.
+- [X] T087 [US3] Write the `UpdateProduct` query (`COALESCE(sqlc.narg)`, `description_set`, `WHERE id AND version AND deleted_at IS NULL`, `version + 1`, `updated_at = now()`, `RETURNING`) and the `ProductExists` query in api/queries/products.sql, then run `make sqlc` (R5)
+- [X] T088 [US3] Implement `Update` in api/internal/repository/products.go: when 0 rows change, run `ProductExists` → `ErrNotFound` or `ErrVersionConflict` (R6)
+- [X] T089 [US3] Implement `Update` in api/internal/service/products.go (`domain.ProductPatch`; `IsEmpty` → `ValidationError`) and add it to `ProductRepository`
+- [X] T090 [US3] Implement the `Update` handler and the `UpdateProductRequest` DTO in api/internal/httpapi/handler/products.go and api/internal/httpapi/handler/dto.go, and add `PATCH /products/:id` to `(*Products).Register`. The DTO has pointers per data-model.md Product.name, Product.description, Product.price_cents, Product.currency, Product.stock, Product.category and Product.is_active, a required Product.version, and no `sku`.
+- [X] T091 [P] [US3] Implement `toPatchBody` in web/src/features/products/schema.ts, per data-model.md ProductPatchBody
+- [X] T092 [US3] Implement `updateProduct` in web/src/features/products/api.ts and `useUpdateProduct` in web/src/features/products/hooks.ts. There's no optimistic update (C7): on success, `setQueryData(detail)` and invalidate `lists()`.
+- [X] T093 [P] [US3] Implement web/src/features/products/components/ConflictAlert.tsx: `<Alert variant="outline" color="red.9">` with the FR-046 text and a "Recargar" button that receives `onReload`
+- [X] T094 [US3] Implement web/src/features/products/pages/ProductEditPage.tsx (`ProductForm` in edit mode, `ConflictAlert`, not-found, `document.title`) and register `/products/:id/edit` in web/src/app/routes.tsx. Add the "Editar" action to ProductDetailPage.tsx, ProductTable.tsx and ProductCardList.tsx.
 
 **Checkpoint**: US1, US2 and US3 all work on their own.
 
