@@ -43,6 +43,8 @@ jobs:
           # Same version as api/tools/golangci-lint.mod.
           version: v2.15.0
           working-directory: api
+      - name: sqlc diff
+        run: go tool -modfile=tools/sqlc.mod sqlc diff
       - name: OpenAPI copy in sync
         working-directory: .
         run: make sync-openapi && git diff --exit-code api/internal/apidocs/openapi.yaml
