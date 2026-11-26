@@ -4,16 +4,20 @@ React client for the Product Catalog API. It consumes every endpoint of the cont
 
 ## Requirements
 
-- Node.js 22.12+ or 24+
-- pnpm
+- Node.js 22.22+ or 24+
+- pnpm (`corepack enable` installs the version pinned in `package.json`)
 
 ## Getting started
 
+From the repository root, `make dev-web` runs the dev server with the variables in the root `.env` (see the root README). To work from this folder instead:
+
 ```sh
 pnpm install
-cp .env.example .env.local   # set VITE_API_URL to the API base URL
+cp .env.example .env.local   # set VITE_API_URL to the API host root
 pnpm dev
 ```
+
+The Docker image is built with the API URL baked in: `docker build --build-arg VITE_API_URL=<url> .`
 
 ## Scripts
 
