@@ -5,6 +5,7 @@ import type {
   ListQuery,
   Product,
   ProductList,
+  UpdateProductRequest,
 } from "./types";
 
 interface ClientResult<T> {
@@ -42,4 +43,16 @@ export function createProduct(body: CreateProductRequest): Promise<Product> {
 
 export function listProducts(query: ListQuery): Promise<ProductList> {
   return unwrap(() => apiClient.GET("/api/v1/products", { params: { query } }));
+}
+
+export function updateProduct(
+  id: string,
+  body: UpdateProductRequest,
+): Promise<Product> {
+  return unwrap(() =>
+    apiClient.PATCH("/api/v1/products/{id}", {
+      params: { path: { id } },
+      body,
+    }),
+  );
 }

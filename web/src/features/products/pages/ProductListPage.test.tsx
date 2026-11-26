@@ -458,6 +458,24 @@ describe("ProductListPage", () => {
       expect(await screen.findByRole("table")).toBeInTheDocument();
     });
 
+    it.each([
+      ["table", true],
+      ["cards", false],
+    ])("offers an edit action per product in the %s", async (_, desktop) => {
+      if (desktop) {
+        mockDesktopLayout();
+      }
+      serveList(() => buildList([cafe, silla]));
+      const { user, router } = renderRoute("/products");
+      await screen.findAllByRole("link", { name: "Café molido" });
+
+      await user.click(
+        screen.getByRole("link", { name: "Editar Silla plegable" }),
+      );
+
+      expect(router.state.location.pathname).toBe(`/products/${silla.id}/edit`);
+    });
+
     it("keeps the previous page on screen while the next one loads", async () => {
       serveList(() => buildList([cafe], { total: 41 }));
       const { user } = renderRoute("/products");

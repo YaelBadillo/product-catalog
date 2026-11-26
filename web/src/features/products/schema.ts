@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { messages } from "./messages";
-import type { Category, CreateProductRequest, Currency } from "./types";
+import type {
+  Category,
+  CreateProductRequest,
+  Currency,
+  Product,
+  UpdateProductRequest,
+} from "./types";
 
 const skuPattern = /^[A-Z0-9-]{4,32}$/;
 const maxPrice = 999_999_999.99;
@@ -138,6 +144,58 @@ export function toCreateBody(values: ProductFormValues): CreateProductRequest {
   const trimmed = values.description.trim();
   if (trimmed !== "") {
     body.description = trimmed;
+  }
+  return body;
+}
+
+/** Form values of an existing product, the price back in currency units. */
+export function toFormValues(product: Product): ProductFormValues {
+  return {
+    sku: product.sku,
+    name: product.name,
+    description: product.description ?? "",
+    price: product.price_cents / 100,
+    currency: product.currency,
+    stock: product.stock,
+    category: product.category,
+    isActive: product.is_active,
+  };
+}
+
+type DirtyFields = Partial<
+  Record<keyof ProductFormValues, boolean | undefined>
+>;
+
+/**
+ * The PATCH body: only the changed fields plus `version`. The SKU never
+ * changes; an emptied description is sent as "" (removes it).
+ */
+export function toPatchBody(
+  dirty: DirtyFields,
+  values: ProductFormValues,
+  version: number,
+): UpdateProductRequest {
+  const body: UpdateProductRequest = { version };
+  if (dirty.name) {
+    body.name = values.name.trim();
+  }
+  if (dirty.description) {
+    body.description = values.description.trim();
+  }
+  if (dirty.price) {
+    body.price_cents = toCents(Number(values.price));
+  }
+  if (dirty.currency) {
+    body.currency = values.currency;
+  }
+  if (dirty.stock) {
+    body.stock = Number(values.stock);
+  }
+  if (dirty.category) {
+    body.category = values.category as Category;
+  }
+  if (dirty.isActive) {
+    body.is_active = values.isActive;
   }
   return body;
 }

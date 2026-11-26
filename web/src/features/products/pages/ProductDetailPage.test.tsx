@@ -71,6 +71,16 @@ describe("ProductDetailPage", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it("links to the edit form", async () => {
+    server.use(productHandlers.getOf(product));
+    const { user, router } = renderRoute(path);
+    await screen.findByRole("heading", { level: 1, name: "Café molido" });
+
+    await user.click(screen.getByRole("link", { name: messages.actions.edit }));
+
+    expect(router.state.location.pathname).toBe(`${path}/edit`);
+  });
+
   it("shows an inactive product and its description", async () => {
     server.use(
       productHandlers.getOf({

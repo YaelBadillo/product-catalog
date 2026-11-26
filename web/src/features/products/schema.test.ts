@@ -4,6 +4,7 @@ import {
   defaultFormValues,
   productFormSchema,
   toCreateBody,
+  toPatchBody,
   type ProductFormValues,
 } from "./schema";
 
@@ -159,5 +160,64 @@ describe("toCreateBody", () => {
   it("rounds floating point noise to whole cents", () => {
     expect(toCreateBody({ ...valid(), price: 0.1 + 0.2 }).price_cents).toBe(30);
     expect(toCreateBody({ ...valid(), price: 19.99 }).price_cents).toBe(1999);
+  });
+});
+
+describe("toPatchBody", () => {
+  it("sends only the changed fields and the version", () => {
+    expect(
+      toPatchBody(
+        { stock: true, isActive: true },
+        { ...valid(), stock: 7, isActive: false },
+        3,
+      ),
+    ).toEqual({ version: 3, stock: 7, is_active: false });
+  });
+
+  it("sends every editable field in API names, the price in cents", () => {
+    expect(
+      toPatchBody(
+        {
+          name: true,
+          description: true,
+          price: true,
+          currency: true,
+          stock: true,
+          category: true,
+          isActive: true,
+        },
+        {
+          ...valid(),
+          name: "  Té verde ",
+          description: "  Hojas  ",
+          price: 1299.9,
+          currency: "USD",
+          category: "other",
+        },
+        1,
+      ),
+    ).toEqual({
+      version: 1,
+      name: "Té verde",
+      description: "Hojas",
+      price_cents: 129990,
+      currency: "USD",
+      stock: 5,
+      category: "other",
+      is_active: true,
+    });
+  });
+
+  it("sends an emptied description as an empty string", () => {
+    expect(
+      toPatchBody({ description: true }, { ...valid(), description: "  " }, 2),
+    ).toEqual({
+      version: 2,
+      description: "",
+    });
+  });
+
+  it("never sends the SKU", () => {
+    expect(toPatchBody({ sku: true }, valid(), 1)).toEqual({ version: 1 });
   });
 });

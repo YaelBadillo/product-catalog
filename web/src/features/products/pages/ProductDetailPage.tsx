@@ -1,6 +1,6 @@
 import { Button, Container, Group, Stack, Text, Title } from "@mantine/core";
-import { ArrowLeft } from "lucide-react";
-import { useParams } from "react-router";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { Link, useParams } from "react-router";
 import { ApiError } from "../../../api/errors";
 import { PageState } from "../../../components/ui/PageState";
 import { useDocumentTitle } from "../../../lib/use-document-title";
@@ -9,7 +9,7 @@ import { errorText } from "../feedback";
 import { useProduct } from "../hooks";
 import { isProductId } from "../ids";
 import { messages } from "../messages";
-import { useBackToCatalog } from "../navigation";
+import { useBackToCatalog, useCatalogState } from "../navigation";
 
 function BackButton() {
   const back = useBackToCatalog();
@@ -37,6 +37,7 @@ function NotFound() {
 }
 
 function ProductDetailContent({ id }: { id: string }) {
+  const { catalogSearch } = useCatalogState();
   const {
     data: product,
     error,
@@ -80,7 +81,17 @@ function ProductDetailContent({ id }: { id: string }) {
         <Title order={1} style={{ overflowWrap: "anywhere" }}>
           {product.name}
         </Title>
-        <BackButton />
+        <Group gap="xs">
+          <BackButton />
+          <Button
+            component={Link}
+            to={`/products/${product.id}/edit`}
+            state={{ catalogSearch }}
+            leftSection={<Pencil aria-hidden="true" size={16} />}
+          >
+            {messages.actions.edit}
+          </Button>
+        </Group>
       </Group>
       <ProductDetails product={product} />
     </Stack>

@@ -16,12 +16,13 @@ import { ProductCardList } from "../components/ProductCardList";
 import { ProductFilters } from "../components/ProductFilters";
 import { ProductTable } from "../components/ProductTable";
 import { ResultsAnnouncer } from "../components/ResultsAnnouncer";
+import { RowActions } from "../components/RowActions";
 import { errorText } from "../feedback";
 import { useProducts } from "../hooks";
 import { messages } from "../messages";
 import type { CatalogState } from "../navigation";
 import { hasFilters } from "../search-params";
-import type { ProductList } from "../types";
+import type { Product, ProductList } from "../types";
 import {
   useCatalogSearch,
   type CatalogSearchControls,
@@ -51,6 +52,9 @@ function Results({
     catalogSearch: location.search,
   };
   const { search, setPage, clearFilters } = controls;
+  const renderActions = (product: Product) => (
+    <RowActions product={product} linkState={linkState} />
+  );
 
   if (list.meta.total === 0) {
     return hasFilters(search) ? (
@@ -92,9 +96,17 @@ function Results({
   return (
     <Stack gap="md">
       {wide ? (
-        <ProductTable products={list.data} linkState={linkState} />
+        <ProductTable
+          products={list.data}
+          linkState={linkState}
+          renderActions={renderActions}
+        />
       ) : (
-        <ProductCardList products={list.data} linkState={linkState} />
+        <ProductCardList
+          products={list.data}
+          linkState={linkState}
+          renderActions={renderActions}
+        />
       )}
       {list.meta.total_pages > 1 && (
         <Group justify="center">
