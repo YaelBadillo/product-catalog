@@ -34,6 +34,6 @@ The Docker image is built with the API URL baked in: `docker build --build-arg V
 
 ## Stack
 
-React + TypeScript (strict), Vite, TanStack Query, React Router, React Hook Form + Zod, openapi-fetch, Tailwind CSS. Tests: Vitest, Testing Library, MSW and vitest-axe.
+React + TypeScript (strict), Vite, TanStack Query, React Router, React Hook Form + Zod, openapi-fetch, Mantine. Tests: Vitest, Testing Library, MSW and vitest-axe.
 
 Architecture and conventions are in [`CLAUDE.md`](CLAUDE.md).

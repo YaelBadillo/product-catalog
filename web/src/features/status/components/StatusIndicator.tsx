@@ -1,16 +1,25 @@
-import { clsx } from "clsx";
+import { Group, Paper, Title } from "@mantine/core";
 import { CircleCheck, CircleHelp, CircleX } from "lucide-react";
 import { useId } from "react";
 import type { ServiceState } from "../api";
 
+// The icon is decorative: the label always states the service state.
 const presentation = {
   operational: {
     label: "Operational",
     Icon: CircleCheck,
-    color: "text-green-700",
+    color: "var(--mantine-color-green-8)",
   },
-  unavailable: { label: "Unavailable", Icon: CircleX, color: "text-red-700" },
-  unknown: { label: "Unknown", Icon: CircleHelp, color: "text-gray-600" },
+  unavailable: {
+    label: "Unavailable",
+    Icon: CircleX,
+    color: "var(--mantine-color-red-9)",
+  },
+  unknown: {
+    label: "Unknown",
+    Icon: CircleHelp,
+    color: "var(--mantine-color-gray-5)",
+  },
 } as const;
 
 interface StatusIndicatorProps {
@@ -24,17 +33,16 @@ export function StatusIndicator({ name, state }: StatusIndicatorProps) {
   const { label, Icon, color } = presentation[state];
 
   return (
-    <section
-      aria-labelledby={headingId}
-      className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4"
-    >
-      <h2 id={headingId} className="font-medium">
-        {name}
-      </h2>
-      <p className={clsx("flex items-center gap-2 text-sm font-medium", color)}>
-        <Icon aria-hidden="true" className="size-5" />
-        {label}
-      </p>
-    </section>
+    <Paper component="section" aria-labelledby={headingId} withBorder p="md">
+      <Group justify="space-between">
+        <Title id={headingId} order={2} size="h4">
+          {name}
+        </Title>
+        <Group component="p" gap="xs" m={0} fz="sm" fw={500}>
+          <Icon aria-hidden="true" size={20} color={color} />
+          {label}
+        </Group>
+      </Group>
+    </Paper>
   );
 }
