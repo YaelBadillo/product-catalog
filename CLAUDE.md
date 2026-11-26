@@ -58,12 +58,15 @@ Makefile
 
 ## Workflow
 
+The constitution (`.specify/memory/constitution.md`) prevails over every CLAUDE.md file; these add technical detail and must not contradict it.
+
 ### Spec Kit (spec-driven development)
 - Every feature gets its own branch and `specs/NNN-feature/`, following: constitution → specify → clarify → plan → tasks → analyze → implement.
 - Features are vertical slices (API + web), worked from the repo root.
 - Implement nothing that is not in the spec. When a requirement changes: update the spec first, then the tests, then the code.
 - A feature's `contracts/` describes contract changes; every plan includes a task to apply them to `openapi.yaml` and regenerate types.
-- Spec Kit applies to features. Infrastructure and tooling work (`chore`, `ci`) does not need a spec, but still follows TDD.
+- Spec Kit applies to user-facing features. Infrastructure and tooling work (`chore`, `ci`) needs no spec: plan it in Claude Code plan mode on a `chore/...` branch. It still follows TDD.
+- Customize Spec Kit templates in `.specify/templates/overrides/` (the `tasks-template.md` override makes tests mandatory). `specify init` restores the core templates and `.claude/skills/speckit-*`, so after an upgrade re-apply the "tests are mandatory" edits to `speckit-tasks`.
 
 ### TDD (mandatory)
 - Write tests **before** code, derived from the spec's acceptance criteria: red → green → refactor. Confirm each new test fails for the right reason before implementing.

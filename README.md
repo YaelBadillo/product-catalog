@@ -115,5 +115,6 @@ Protect `main` (Settings → Branches):
 - **Interceptable client.** The openapi-fetch client resolves `fetch` on each call, so MSW can intercept it in tests.
 - **CI.** One workflow with three jobs that double as required checks; newer runs on the same branch cancel older ones; actions are pinned by major version and the Redocly CLI by exact version.
 - **Deploy gating.** Railway waits for CI on `main`; Vercel relies on branch protection, since it does not wait for checks.
-- **Spec Kit scope.** Specs cover features; infrastructure and tooling work such as this foundation does not need one.
+- **Spec Kit scope.** Specs cover user-facing features; infrastructure and tooling work such as this foundation needs none and is planned in Claude Code plan mode on `chore/...` branches. The rules live in the constitution (`.specify/memory/constitution.md`).
+- **Mandatory tests in Spec Kit.** Stock Spec Kit treats test tasks as optional; a `tasks-template.md` override and an edit to the `speckit-tasks` skill make them mandatory and first in every phase, as TDD requires.
 - **Deferred to the first feature.** Rate limiting, body size limit, security headers, Swagger UI at `/docs`, migrations wiring, `make sqlc` and `make seed`.

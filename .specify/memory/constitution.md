@@ -1,50 +1,93 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Product Catalog Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Spec-Driven Development
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- Every user-facing feature MUST go through Spec Kit (specify → clarify → plan → tasks → analyze →
+  implement) as one vertical slice (API + web), on its own branch with its own `specs/NNN-feature/`.
+- Infrastructure and tooling work MUST be planned in Claude Code plan mode on a `chore/...` branch;
+  it needs no spec.
+- Nothing outside the spec is implemented. When a requirement changes, the spec MUST be updated
+  before the tests and the code.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Test-Driven Development (NON-NEGOTIABLE)
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+- Tests MUST be written before the code they cover, derived from the acceptance criteria, and MUST
+  fail first for the right reason (red → green → refactor). This applies to all code, `chore` work
+  included.
+- Code adapts to tests, never the reverse: modifying, weakening or deleting a test to make it pass
+  is forbidden. A test that looks wrong is checked against the spec; if the spec is wrong, the spec
+  is fixed first.
+- In `tasks.md`, test tasks MUST precede implementation tasks in every phase.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Contract First
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+- `openapi.yaml` is the single source of truth for the API. Contract changes MUST land in it before
+  implementation, followed by type regeneration.
+- Generated code (frontend TS types, sqlc output) MUST NOT be edited by hand.
+- Backend tests MUST validate every response against the contract.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Layered Architecture and Dependency Inversion
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- Backend: `handler → service → repository`. Each layer depends on small interfaces defined by its
+  consumer; constructors accept interfaces and return concrete types.
+- Dependencies are wired by hand in the composition root (`cmd/api/main.go`): no DI containers, no
+  globals.
+- Frontend is organized by feature: components → hooks → feature API → HTTP client. A feature MUST
+  NOT import from another feature, and components MUST NOT call the HTTP client directly.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Code Quality
+
+- Code follows SOLID, Clean Code and the idioms of its language.
+- Formatting and lint MUST pass as configured in `api/CLAUDE.md` and `web/CLAUDE.md`.
+- A lint rule MUST NOT be disabled (`//nolint`, `eslint-disable` or config) without a written
+  justification next to it.
+
+### VI. Security (OWASP Top 10)
+
+- All input (body, params, query) MUST be validated on the server, even when the web validates it.
+- SQL MUST use parameterized queries only; never concatenate input into SQL.
+- CORS MUST list explicit origins, never `*`.
+- Secrets live only in environment variables: never in the repo, logs or `VITE_*` variables.
+- Errors MUST NOT expose internals: a 500 returns a generic message and the request ID.
+- The API MUST rate-limit requests, and CI MUST scan dependencies for known vulnerabilities.
+
+### VII. Accessibility and User Experience
+
+- The UI MUST follow the component strategy defined in `web/CLAUDE.md`.
+- Every view MUST be operable by keyboard and screen reader, and its tests MUST include an axe
+  check.
+- Every view MUST handle loading, empty and error states, and every action MUST give visible
+  feedback.
+
+### VIII. Documentation in Sync
+
+- Every change MUST update, in the same PR, whatever it affects: contract, specs, README, CLAUDE.md
+  files, this constitution, `.env.example` and generated code.
+- A change without its documentation is incomplete and MUST NOT be merged.
+
+### IX. Simplicity
+
+- Implement only what the spec asks for.
+- Every new dependency MUST be justified in the plan.
+- Any additional complexity MUST be justified in the plan's Complexity Tracking section.
+
+### X. Continuous Delivery
+
+- `main` MUST always be green and deployable.
+- Every change MUST reach `main` through a PR with the full CI green; no direct pushes.
+- Production deploys are automatic and MUST ship only changes that passed CI.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This constitution supersedes all other guidance. The CLAUDE.md files complement it with technical
+  detail and MUST NOT contradict it.
+- Every plan MUST pass the Constitution Check against each principle before implementation;
+  exceptions MUST be justified in the plan's Complexity Tracking section.
+- Amendments MUST bump the version, update **Last Amended**, state the reason in the commit and PR,
+  and propagate to the CLAUDE.md files and affected templates in the same PR.
+- Versioning: MAJOR removes or redefines a principle; MINOR adds a principle or materially expands
+  guidance; PATCH clarifies wording.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-11-25 | **Last Amended**: 2026-11-25
