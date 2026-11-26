@@ -21,7 +21,7 @@ Makefile
 
 ## Commands
 
-`make help` lists every command. Environment: `make up`, `make down`, `make db`, `make dev-api`, `make dev-web`. Tests: `make test` (all), `make test-unit` (backend with `-short` + frontend), `make test-api`, `make test-web`. Quality: `make lint`, `make lint-api`, `make lint-web`, `make fmt`. Generation: `make gen-types`, `make sqlc`, `make sync-openapi`, `make migrate-new name=...`. Data: `make seed` (20 sample products, idempotent). Every new command goes into the Makefile with its `##` description.
+`make help` lists every command. Environment: `make up`, `make down`, `make db`, `make dev-api`, `make dev-web`. Tests: `make test` (all), `make test-unit` (backend with `-short` + frontend), `make test-api`, `make test-web`. Quality: `make lint`, `make lint-api`, `make lint-web`, `make fmt`. Docker only (no local Go or Node): `make test-docker`, `make lint-docker`. Generation: `make gen-types`, `make sqlc`, `make sync-openapi`, `make migrate-new name=...`. Data: `make seed` (20 sample products, idempotent). Every new command goes into the Makefile with its `##` description.
 
 ## Domain: `Product`
 

@@ -9,7 +9,7 @@ Gestión de un catálogo de productos: API REST en Go y aplicación web en React
 - Docker con Compose v2
 - make
 
-Para desarrollar o correr los tests también necesitas Go 1.27.4+, Node.js 22.22+ y pnpm (`corepack enable`).
+Solo el modo desarrollo necesita además Go 1.27.4+, Node.js 22.22+ y pnpm (`corepack enable`).
 
 ## Levantar el proyecto
 
@@ -36,10 +36,16 @@ make dev-web   # web en http://localhost:5173
 
 ## Tests y calidad
 
+Solo con Docker (usa las mismas versiones de Go y Node que CI):
+
 ```sh
-make test   # API y web (con Docker encendido: los tests de integración crean su propio Postgres)
-make lint   # lint, formato y typecheck
+make test-docker   # API y web
+make lint-docker   # lint, formato y typecheck
 ```
+
+Con Go y Node instalados, más rápido para el día a día: `make test` y `make lint`.
+
+Los tests de integración de la API crean su propio Postgres con testcontainers: Docker debe estar encendido.
 
 `make help` lista todos los comandos.
 
