@@ -11,6 +11,7 @@ import (
 type ProductRepository interface {
 	Create(ctx context.Context, in domain.ProductInput) (domain.Product, error)
 	Get(ctx context.Context, id string) (domain.Product, error)
+	List(ctx context.Context, p ListParams) (ProductPage, error)
 }
 
 // Products applies the product rules on top of a repository.

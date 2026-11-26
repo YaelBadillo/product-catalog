@@ -9,6 +9,7 @@ import (
 	"github.com/go-playground/validator/v10"
 
 	"github.com/YaelBadillo/product-catalog/api/internal/domain"
+	"github.com/YaelBadillo/product-catalog/api/internal/service"
 )
 
 const productsPath = "/api/v1/products/"
@@ -19,6 +20,7 @@ var uuidPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]
 type ProductService interface {
 	Create(ctx context.Context, in domain.ProductInput) (domain.Product, error)
 	Get(ctx context.Context, id string) (domain.Product, error)
+	List(ctx context.Context, p service.ListParams) (service.ProductPage, error)
 }
 
 // Products serves the /products routes.
@@ -34,8 +36,24 @@ func NewProducts(svc ProductService, validate *validator.Validate) *Products {
 
 // Register adds the product routes to g (the /api/v1 group).
 func (h *Products) Register(g *gin.RouterGroup) {
+	g.GET("/products", h.List)
 	g.POST("/products", h.Create)
 	g.GET("/products/:id", h.Get)
+}
+
+// List handles GET /products: one page and its meta.
+func (h *Products) List(c *gin.Context) {
+	params, err := ParseListParams(c.Request.URL.Query())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	page, err := h.svc.List(c.Request.Context(), params)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, toListResponse(page, params))
 }
 
 // Create handles POST /products: 201 with Location and the product.

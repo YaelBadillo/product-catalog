@@ -9,6 +9,43 @@ import (
 	"context"
 )
 
+const countProducts = `-- name: CountProducts :one
+SELECT count(*) FROM products
+WHERE deleted_at IS NULL
+  AND ($1::text IS NULL OR category = $1::text)
+  AND ($2::boolean IS NULL OR is_active = $2::boolean)
+  AND ($3::text IS NULL OR currency = $3::text)
+  AND ($4::bigint IS NULL OR price_cents >= $4::bigint)
+  AND ($5::bigint IS NULL OR price_cents <= $5::bigint)
+  AND ($6::text IS NULL
+    OR catalog_fold(name) LIKE '%' || catalog_fold($6::text) || '%' ESCAPE '\'
+    OR catalog_fold(sku) LIKE '%' || catalog_fold($6::text) || '%' ESCAPE '\')
+`
+
+type CountProductsParams struct {
+	Category *string
+	IsActive *bool
+	Currency *string
+	MinPrice *int64
+	MaxPrice *int64
+	Pattern  *string
+}
+
+// The same filters as ListProducts.
+func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countProducts,
+		arg.Category,
+		arg.IsActive,
+		arg.Currency,
+		arg.MinPrice,
+		arg.MaxPrice,
+		arg.Pattern,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO products (sku, name, description, price_cents, currency, stock, category, is_active)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -80,4 +117,91 @@ func (q *Queries) GetProduct(ctx context.Context, id string) (Product, error) {
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const listProducts = `-- name: ListProducts :many
+SELECT id, sku, name, description, price_cents, currency, stock, category, is_active, version, created_at, updated_at, deleted_at FROM products
+WHERE deleted_at IS NULL
+  AND ($1::text IS NULL OR category = $1::text)
+  AND ($2::boolean IS NULL OR is_active = $2::boolean)
+  AND ($3::text IS NULL OR currency = $3::text)
+  AND ($4::bigint IS NULL OR price_cents >= $4::bigint)
+  AND ($5::bigint IS NULL OR price_cents <= $5::bigint)
+  AND ($6::text IS NULL
+    OR catalog_fold(name) LIKE '%' || catalog_fold($6::text) || '%' ESCAPE '\'
+    OR catalog_fold(sku) LIKE '%' || catalog_fold($6::text) || '%' ESCAPE '\')
+ORDER BY
+  CASE WHEN $7::text = 'name' AND $8::text = 'asc' THEN name END ASC,
+  CASE WHEN $7::text = 'name' AND $8::text = 'desc' THEN name END DESC,
+  CASE WHEN $7::text = 'price' THEN currency END ASC,
+  CASE WHEN $7::text = 'price' AND $8::text = 'asc' THEN price_cents END ASC,
+  CASE WHEN $7::text = 'price' AND $8::text = 'desc' THEN price_cents END DESC,
+  CASE WHEN $7::text = 'stock' AND $8::text = 'asc' THEN stock END ASC,
+  CASE WHEN $7::text = 'stock' AND $8::text = 'desc' THEN stock END DESC,
+  CASE WHEN $7::text = 'created_at' AND $8::text = 'asc' THEN created_at END ASC,
+  CASE WHEN $7::text = 'created_at' AND $8::text = 'desc' THEN created_at END DESC,
+  id ASC
+LIMIT $10 OFFSET $9
+`
+
+type ListProductsParams struct {
+	Category   *string
+	IsActive   *bool
+	Currency   *string
+	MinPrice   *int64
+	MaxPrice   *int64
+	Pattern    *string
+	Sort       string
+	SortOrder  string
+	PageOffset int32
+	PageLimit  int32
+}
+
+// Optional filters are NULL when unset. The sort comes from a whitelist: each
+// (column, direction) pair is one CASE, so nothing from the input reaches the
+// SQL text. Sorting by price groups by currency first (MXN, then USD), and id
+// breaks every tie so pages never repeat or skip products.
+func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error) {
+	rows, err := q.db.Query(ctx, listProducts,
+		arg.Category,
+		arg.IsActive,
+		arg.Currency,
+		arg.MinPrice,
+		arg.MaxPrice,
+		arg.Pattern,
+		arg.Sort,
+		arg.SortOrder,
+		arg.PageOffset,
+		arg.PageLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Product
+	for rows.Next() {
+		var i Product
+		if err := rows.Scan(
+			&i.ID,
+			&i.Sku,
+			&i.Name,
+			&i.Description,
+			&i.PriceCents,
+			&i.Currency,
+			&i.Stock,
+			&i.Category,
+			&i.IsActive,
+			&i.Version,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/YaelBadillo/product-catalog/api/internal/domain"
 	"github.com/YaelBadillo/product-catalog/api/internal/httpapi/handler"
+	"github.com/YaelBadillo/product-catalog/api/internal/service"
 )
 
 var errNotStubbed = errors.New("fake service: call not stubbed")
@@ -23,6 +24,7 @@ var errNotStubbed = errors.New("fake service: call not stubbed")
 type fakeService struct {
 	create func(domain.ProductInput) (domain.Product, error)
 	get    func(id string) (domain.Product, error)
+	list   func(service.ListParams) (service.ProductPage, error)
 
 	createdWith []domain.ProductInput
 }
@@ -40,6 +42,13 @@ func (f *fakeService) Get(_ context.Context, id string) (domain.Product, error) 
 		return domain.Product{}, errNotStubbed
 	}
 	return f.get(id)
+}
+
+func (f *fakeService) List(_ context.Context, p service.ListParams) (service.ProductPage, error) {
+	if f.list == nil {
+		return service.ProductPage{}, errNotStubbed
+	}
+	return f.list(p)
 }
 
 const productID = "0193a5b0-7c1e-7000-8000-000000000001"

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/YaelBadillo/product-catalog/api/internal/domain"
+	"github.com/YaelBadillo/product-catalog/api/internal/service"
 )
 
 // CreateProductRequest is the body of POST /products. Tags check shape; the
@@ -70,5 +71,36 @@ func toResponse(p domain.Product) ProductResponse {
 		Version:     p.Version,
 		CreatedAt:   p.CreatedAt.UTC(),
 		UpdatedAt:   p.UpdatedAt.UTC(),
+	}
+}
+
+// ProductList is the body of GET /products.
+type ProductList struct {
+	Data []ProductResponse `json:"data"`
+	Meta PageMeta          `json:"meta"`
+}
+
+// PageMeta describes the page and the total that match the filters.
+type PageMeta struct {
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	Total      int64 `json:"total"`
+	TotalPages int64 `json:"total_pages"`
+}
+
+func toListResponse(page service.ProductPage, p service.ListParams) ProductList {
+	data := make([]ProductResponse, 0, len(page.Items))
+	for _, item := range page.Items {
+		data = append(data, toResponse(item))
+	}
+	pageSize := int64(p.PageSize)
+	return ProductList{
+		Data: data,
+		Meta: PageMeta{
+			Page:       p.Page,
+			PageSize:   p.PageSize,
+			Total:      page.Total,
+			TotalPages: (page.Total + pageSize - 1) / pageSize,
+		},
 	}
 }

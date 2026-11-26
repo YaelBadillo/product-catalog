@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/YaelBadillo/product-catalog/api/internal/domain"
+	"github.com/YaelBadillo/product-catalog/api/internal/service"
 )
 
 var errUnexpected = errors.New("unexpected call")
@@ -14,6 +15,14 @@ type fakeRepo struct {
 	created []domain.ProductInput
 	create  func(domain.ProductInput) (domain.Product, error)
 	get     func(id string) (domain.Product, error)
+	list    func(service.ListParams) (service.ProductPage, error)
+}
+
+func (f *fakeRepo) List(_ context.Context, p service.ListParams) (service.ProductPage, error) {
+	if f.list == nil {
+		return service.ProductPage{}, errUnexpected
+	}
+	return f.list(p)
 }
 
 func (f *fakeRepo) Create(_ context.Context, in domain.ProductInput) (domain.Product, error) {
