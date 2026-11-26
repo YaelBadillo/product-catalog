@@ -1,25 +1,106 @@
-// Command api starts the Product Catalog HTTP API.
+// Command api starts the Product Catalog HTTP API. Run as `api healthcheck`,
+// it probes the local /healthz instead and exits 0 or 1.
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/YaelBadillo/product-catalog/api/internal/config"
+	"github.com/YaelBadillo/product-catalog/api/internal/healthcheck"
 	"github.com/YaelBadillo/product-catalog/api/internal/httpapi"
+	"github.com/YaelBadillo/product-catalog/api/internal/httpapi/handler"
+)
+
+const (
+	readinessTimeout   = 2 * time.Second
+	healthcheckTimeout = 3 * time.Second
+	shutdownTimeout    = 10 * time.Second
 )
 
 func main() {
-	srv := &http.Server{
-		Addr:              ":8080",
-		Handler:           httpapi.NewRouter(),
-		ReadHeaderTimeout: 5 * time.Second,
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		if err := runHealthcheck(); err != nil {
+			logger.Error("healthcheck failed", "error", err)
+			os.Exit(1)
+		}
+		return
 	}
 
-	slog.Info("listening", "addr", srv.Addr)
-	if err := srv.ListenAndServe(); err != nil {
-		slog.Error("server stopped", "error", err)
+	if err := run(logger); err != nil {
+		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
+}
+
+func runHealthcheck() error {
+	cfg, err := config.LoadHTTP()
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), healthcheckTimeout)
+	defer cancel()
+	return healthcheck.Check(ctx, fmt.Sprintf("http://127.0.0.1:%d/healthz", cfg.Port))
+}
+
+func run(logger *slog.Logger) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// The pool connects lazily, so the API starts even if the database is down
+	// and /readyz reports it.
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("create database pool: %w", err)
+	}
+	defer pool.Close()
+
+	health := handler.NewHealth(pool, readinessTimeout, logger)
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%d", cfg.HTTP.Port),
+		Handler:           httpapi.NewRouter(logger, cfg.CORSAllowedOrigins, health),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	serveErr := make(chan error, 1)
+	go func() {
+		logger.Info("listening", "addr", srv.Addr)
+		serveErr <- srv.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serveErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("serve: %w", err)
+		}
+		return nil
+	case <-ctx.Done():
+	}
+
+	logger.Info("shutting down")
+	shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), shutdownTimeout)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shutdown: %w", err)
+	}
+	return nil
 }

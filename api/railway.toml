@@ -1,0 +1,8 @@
+# Railway service config. Railway does not resolve this file relative to the
+# service's root directory: set its path to /api/railway.toml in the service.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/healthz"

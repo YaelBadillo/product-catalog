@@ -1,0 +1,10 @@
+.git
+.env
+tools/
+bin/
+/api
+**/*_test.go
+*.test
+*.out
+Dockerfile
+.dockerignore
