@@ -44,6 +44,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List products
+         * @description Returns one page of non-deleted products that match every given filter. `min_price` and `max_price` require `currency` (prices in different currencies are never compared), and `min_price` must not exceed `max_price`. Sorting by `price` groups by currency (MXN, then USD) and orders by price within each group. Sorting by `name` follows Spanish alphabetical order (case and accents ignored, ñ after n). Ties are broken by `id`, so pages never repeat or skip products. A page beyond the last one returns an empty `data` with the real `total`.
+         */
+        get: operations["listProducts"];
+        put?: never;
+        /**
+         * Create a product
+         * @description The SKU is trimmed and uppercased before validation. `currency` defaults to MXN and `is_active` to true. An empty or whitespace-only `description` means no description.
+         */
+        post: operations["createProduct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** Get a product */
+        get: operations["getProduct"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a product
+         * @description Logical deletion: the product stops existing for every query and its SKU becomes available. `version` must match the current one.
+         */
+        delete: operations["deleteProduct"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a product
+         * @description Applies only the fields present. `version` must match the current one; otherwise nothing changes and the answer is 409 `VERSION_CONFLICT`. The SKU cannot be changed. An empty or whitespace-only `description` removes it. A body with only `version` is rejected with 422.
+         */
+        patch: operations["updateProduct"];
+        trace?: never;
+    };
+    "/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * API documentation
+         * @description Swagger UI for this contract.
+         */
+        get: operations["getDocs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs/openapi.yaml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * OpenAPI contract
+         * @description This contract, as served by the API.
+         */
+        get: operations["getOpenAPI"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -60,8 +151,160 @@ export interface components {
                 database: components["schemas"]["CheckStatus"];
             };
         };
+        /** @enum {string} */
+        Category: "electronics" | "home" | "food" | "clothing" | "other";
+        /** @enum {string} */
+        Currency: "MXN" | "USD";
+        Product: {
+            /** Format: uuid */
+            id: string;
+            sku: string;
+            name: string;
+            description: string | null;
+            /** Format: int64 */
+            price_cents: number;
+            currency: components["schemas"]["Currency"];
+            /** Format: int32 */
+            stock: number;
+            category: components["schemas"]["Category"];
+            is_active: boolean;
+            /** Format: int32 */
+            version: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        CreateProductRequest: {
+            /** @description Trimmed and uppercased, then must match ^[A-Z0-9-]{4,32}$. */
+            sku: string;
+            /** @description Trimmed, then 2–120 characters. */
+            name: string;
+            /** @description Trimmed, then at most 2000 characters; empty means none. */
+            description?: string;
+            /** Format: int64 */
+            price_cents: number;
+            /** @default MXN */
+            currency: components["schemas"]["Currency"];
+            /** Format: int32 */
+            stock: number;
+            category: components["schemas"]["Category"];
+            /** @default true */
+            is_active: boolean;
+        };
+        /** @description Only the fields present change. There is no `sku`. */
+        UpdateProductRequest: {
+            /** Format: int32 */
+            version: number;
+            /** @description Trimmed, then 2–120 characters. */
+            name?: string;
+            /** @description Trimmed; empty or whitespace-only removes it. */
+            description?: string;
+            /** Format: int64 */
+            price_cents?: number;
+            currency?: components["schemas"]["Currency"];
+            /** Format: int32 */
+            stock?: number;
+            category?: components["schemas"]["Category"];
+            is_active?: boolean;
+        };
+        ProductList: {
+            data: components["schemas"]["Product"][];
+            meta: components["schemas"]["PageMeta"];
+        };
+        PageMeta: {
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            page_size: number;
+            /** Format: int64 */
+            total: number;
+            /** Format: int32 */
+            total_pages: number;
+        };
+        /** @enum {string} */
+        ErrorCode: "VALIDATION_ERROR" | "NOT_FOUND" | "SKU_ALREADY_EXISTS" | "VERSION_CONFLICT" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "INTERNAL_ERROR";
+        ErrorDetail: {
+            /** @description JSON field or query parameter name; empty for body-level errors. */
+            field: string;
+            message: string;
+        };
+        Error: {
+            error: {
+                code: components["schemas"]["ErrorCode"];
+                /** @description English, for developers. A 500 carries only a generic message and the request ID. */
+                message: string;
+                details: components["schemas"]["ErrorDetail"][];
+            };
+        };
     };
-    responses: never;
+    responses: {
+        /** @description `VALIDATION_ERROR`: malformed JSON, unknown field, wrong type, invalid id, missing or invalid `version`, or an invalid query parameter (including a price range without `currency` or min > max). */
+        BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `NOT_FOUND`: the product does not exist or was deleted. */
+        NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `VERSION_CONFLICT`: the product changed since the client loaded it. */
+        VersionConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `PAYLOAD_TOO_LARGE`: the body exceeds 64 KiB. */
+        PayloadTooLarge: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `VALIDATION_ERROR`: the body breaks a business rule; `details` names each field. */
+        UnprocessableEntity: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `RATE_LIMITED`: the network address exceeded a sustained 300 requests per minute (5 per second) or a burst of 300. */
+        TooManyRequests: {
+            headers: {
+                /** @description Seconds to wait before retrying. */
+                "Retry-After"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description `INTERNAL_ERROR`: generic message with the request ID; details go only to the logs. */
+        InternalError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -114,6 +357,210 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+        };
+    };
+    listProducts: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                category?: components["schemas"]["Category"];
+                is_active?: boolean;
+                currency?: components["schemas"]["Currency"];
+                /** @description Minimum price in cents, inclusive. Requires `currency`. */
+                min_price?: number;
+                /** @description Maximum price in cents, inclusive. Requires `currency`. */
+                max_price?: number;
+                /** @description Matches products whose name or SKU contains the text, ignoring case and accents. Surrounding spaces are ignored; `%`, `_` and `\` match literally. */
+                q?: string;
+                sort?: "name" | "price" | "stock" | "created_at";
+                order?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of products. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProductRequest"];
+            };
+        };
+        responses: {
+            /** @description Product created. */
+            201: {
+                headers: {
+                    /** @description Path of the new product, e.g. /api/v1/products/{id}. */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description `SKU_ALREADY_EXISTS`: another non-deleted product uses the SKU. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            413: components["responses"]["PayloadTooLarge"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The product. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteProduct: {
+        parameters: {
+            query: {
+                /** @description The version the client last saw. */
+                version: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Product deleted. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["VersionConflict"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    updateProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProductRequest"];
+            };
+        };
+        responses: {
+            /** @description The updated product, with `version` incremented. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Product"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["VersionConflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            422: components["responses"]["UnprocessableEntity"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    getDocs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description HTML page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+        };
+    };
+    getOpenAPI: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The contract in YAML. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/yaml": string;
                 };
             };
         };
