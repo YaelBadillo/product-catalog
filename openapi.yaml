@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Product Catalog API
+  version: 0.1.0
+  description: REST API for managing the product catalog.
+servers:
+  - url: /
+    description: Root of the API host (the web client's VITE_API_URL).
+tags:
+  - name: health
+    description: Liveness and readiness probes.
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      summary: Liveness probe
+      description: Reports that the process is alive. It does not check dependencies.
+      tags: [health]
+      security: []
+      responses:
+        "200":
+          description: The process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /readyz:
+    get:
+      operationId: getReadiness
+      summary: Readiness probe
+      description: Pings the database with a short timeout.
+      tags: [health]
+      security: []
+      responses:
+        "200":
+          description: Every dependency is available.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+        "503":
+          description: At least one dependency is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadinessResponse"
+components:
+  schemas:
+    CheckStatus:
+      type: string
+      enum: [ok, unavailable]
+    HealthResponse:
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    ReadinessResponse:
+      type: object
+      required: [status, checks]
+      additionalProperties: false
+      properties:
+        status:
+          $ref: "#/components/schemas/CheckStatus"
+        checks:
+          type: object
+          required: [database]
+          additionalProperties: false
+          properties:
+            database:
+              $ref: "#/components/schemas/CheckStatus"
