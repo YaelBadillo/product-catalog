@@ -10,7 +10,7 @@ import (
 	"github.com/YaelBadillo/product-catalog/api/internal/config"
 )
 
-var envKeys = []string{"PORT", "DATABASE_URL", "CORS_ALLOWED_ORIGINS"}
+var envKeys = []string{"PORT", "DATABASE_URL", "CORS_ALLOWED_ORIGINS", "CLIENT_IP_HEADER"}
 
 // setEnv sets exactly the given variables and unsets the other known ones,
 // restoring everything when the test ends.
@@ -52,11 +52,13 @@ func TestLoad(t *testing.T) {
 				"PORT":                 "9090",
 				"DATABASE_URL":         "postgres://db/catalog",
 				"CORS_ALLOWED_ORIGINS": "http://localhost:3000,https://catalog.example.com",
+				"CLIENT_IP_HEADER":     "X-Real-IP",
 			},
 			want: config.Config{
 				HTTP:               config.HTTP{Port: 9090},
 				DatabaseURL:        "postgres://db/catalog",
 				CORSAllowedOrigins: []string{"http://localhost:3000", "https://catalog.example.com"},
+				ClientIPHeader:     "X-Real-IP",
 			},
 		},
 		{
