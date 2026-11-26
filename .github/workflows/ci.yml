@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Job names are the required status checks of the `main` branch protection.
+jobs:
+  openapi:
+    name: OpenAPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Lint openapi.yaml
+        run: npx --yes @redocly/cli@2.80.0 lint openapi.yaml
+
+  api:
+    name: API (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: api/go.mod
+          cache-dependency-path: api/go.sum
+      - name: Lint and formatting
+        uses: golangci/golangci-lint-action@v9
+        with:
+          # Same version as api/tools/golangci-lint.mod.
+          version: v2.15.0
+          working-directory: api
+      - name: Vulnerability check
+        run: go tool -modfile=tools/govulncheck.mod govulncheck ./...
+      - name: Test
+        working-directory: .
+        run: make test-api
+      - name: Build
+        run: go build ./...
+      - name: Docker build
+        run: docker build -t product-catalog-api .
+
+  web:
+    name: Web (React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check generated API types
+        run: pnpm gen:api && git diff --exit-code src/api/schema.d.ts
+      - name: Lint, formatting and typecheck
+        working-directory: .
+        run: make lint-web
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
+      - name: Test
+        working-directory: .
+        run: make test-web
+      - name: Build
+        run: pnpm build
+        env:
+          VITE_API_URL: http://localhost:8080
+      - name: Docker build
+        run: docker build --build-arg VITE_API_URL=http://localhost:8080 -t product-catalog-web .
