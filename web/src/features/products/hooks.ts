@@ -1,6 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createProduct, getProduct } from "./api";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { createProduct, getProduct, listProducts } from "./api";
 import { productKeys } from "./query-keys";
+import { toListQuery, type CatalogSearch } from "./search-params";
 
 /** One product. `enabled: false` skips the request (e.g. an invalid id). */
 export function useProduct(id: string, { enabled = true } = {}) {
@@ -20,5 +26,15 @@ export function useCreateProduct() {
       queryClient.setQueryData(productKeys.detail(product.id), product);
       void queryClient.invalidateQueries({ queryKey: productKeys.lists() });
     },
+  });
+}
+
+/** One page of the catalog. The previous page stays while the next loads. */
+export function useProducts(search: CatalogSearch) {
+  const query = toListQuery(search);
+  return useQuery({
+    queryKey: productKeys.list(query),
+    queryFn: () => listProducts(query),
+    placeholderData: keepPreviousData,
   });
 }

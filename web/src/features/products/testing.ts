@@ -93,6 +93,7 @@ export async function chooseOption(
 export function field(label: string): HTMLInputElement {
   const found =
     screen.queryByRole("textbox", { name: label }) ??
+    screen.queryByRole("searchbox", { name: label }) ??
     screen.getByRole("combobox", { name: label });
   return found as HTMLInputElement;
 }

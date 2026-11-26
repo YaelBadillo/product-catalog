@@ -1,6 +1,11 @@
 import { apiClient } from "../../api/client";
 import { toApiError } from "../../api/errors";
-import type { CreateProductRequest, Product } from "./types";
+import type {
+  CreateProductRequest,
+  ListQuery,
+  Product,
+  ProductList,
+} from "./types";
 
 interface ClientResult<T> {
   data?: T;
@@ -33,4 +38,8 @@ export function getProduct(id: string): Promise<Product> {
 
 export function createProduct(body: CreateProductRequest): Promise<Product> {
   return unwrap(() => apiClient.POST("/api/v1/products", { body }));
+}
+
+export function listProducts(query: ListQuery): Promise<ProductList> {
+  return unwrap(() => apiClient.GET("/api/v1/products", { params: { query } }));
 }
