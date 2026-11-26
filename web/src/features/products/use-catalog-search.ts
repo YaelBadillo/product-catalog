@@ -55,8 +55,8 @@ export function useCatalogSearch() {
   return {
     search,
     setFilters,
-    setPage: (page: number) => {
-      navigate({ ...search, page });
+    setPage: (page: number, { replace = false } = {}) => {
+      navigate({ ...search, page }, replace);
     },
     /** Applies the search after a pause in typing. */
     searchLater,

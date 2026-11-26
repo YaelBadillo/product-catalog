@@ -93,6 +93,12 @@ export const messages = {
     all: "Todas",
     allStatuses: "Todos",
     pagination: "Paginación",
+    paginationControls: {
+      first: "Primera página",
+      previous: "Página anterior",
+      next: "Página siguiente",
+      last: "Última página",
+    },
     filters: "Filtros",
     chooseCategory: "Elige una categoría",
   },

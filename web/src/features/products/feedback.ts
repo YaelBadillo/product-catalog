@@ -60,3 +60,10 @@ export function applyServerErrors(
   });
   return fields.length > 0;
 }
+
+/** Text for a failed deletion: rate limited, or "could not delete". */
+export function deleteErrorText(error: unknown): string {
+  return error instanceof ApiError && error.code === "RATE_LIMITED"
+    ? messages.feedback.rateLimited
+    : messages.feedback.deleteFailed;
+}

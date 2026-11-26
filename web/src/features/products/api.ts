@@ -56,3 +56,14 @@ export function updateProduct(
     }),
   );
 }
+
+export async function deleteProduct(
+  id: string,
+  version: number,
+): Promise<void> {
+  await unwrap(() =>
+    apiClient.DELETE("/api/v1/products/{id}", {
+      params: { path: { id }, query: { version } },
+    }),
+  );
+}

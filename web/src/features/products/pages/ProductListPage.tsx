@@ -9,16 +9,25 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { Plus } from "lucide-react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router";
+import { ApiError } from "../../../api/errors";
 import { PageState } from "../../../components/ui/PageState";
 import { useDocumentTitle } from "../../../lib/use-document-title";
+import { ConflictAlert } from "../components/ConflictAlert";
+import { openDeleteConfirm } from "../components/delete-confirm";
 import { ProductCardList } from "../components/ProductCardList";
 import { ProductFilters } from "../components/ProductFilters";
 import { ProductTable } from "../components/ProductTable";
 import { ResultsAnnouncer } from "../components/ResultsAnnouncer";
 import { RowActions } from "../components/RowActions";
-import { errorText } from "../feedback";
-import { useProducts } from "../hooks";
+import {
+  deleteErrorText,
+  errorText,
+  notifyError,
+  notifySuccess,
+} from "../feedback";
+import { useDeleteProduct, useProducts } from "../hooks";
 import { messages } from "../messages";
 import type { CatalogState } from "../navigation";
 import { hasFilters } from "../search-params";
@@ -28,20 +37,13 @@ import {
   type CatalogSearchControls,
 } from "../use-catalog-search";
 
-const paginationLabels: Record<string, string> = {
-  first: "Primera página",
-  previous: "Página anterior",
-  next: "Página siguiente",
-  last: "Última página",
-};
-
-function Results({
-  list,
-  controls,
-}: {
+interface ResultsProps {
   list: ProductList;
   controls: CatalogSearchControls;
-}) {
+  onDelete: (product: Product) => void;
+}
+
+function Results({ list, controls, onDelete }: ResultsProps) {
   // Read synchronously: the SPA has no server render, so no layout flash.
   const wide = useMediaQuery("(min-width: 48em)", undefined, {
     getInitialValueInEffect: false,
@@ -53,7 +55,7 @@ function Results({
   };
   const { search, setPage, clearFilters } = controls;
   const renderActions = (product: Product) => (
-    <RowActions product={product} linkState={linkState} />
+    <RowActions product={product} linkState={linkState} onDelete={onDelete} />
   );
 
   if (list.meta.total === 0) {
@@ -117,7 +119,7 @@ function Results({
             value={search.page}
             onChange={setPage}
             getControlProps={(control) => ({
-              "aria-label": paginationLabels[control],
+              "aria-label": messages.labels.paginationControls[control],
             })}
             getItemProps={(page) => ({ "aria-label": String(page) })}
           />
@@ -130,8 +132,35 @@ function Results({
 export function ProductListPage() {
   useDocumentTitle(messages.pages.catalog);
   const controls = useCatalogSearch();
-  const { search } = controls;
+  const { search, setPage } = controls;
   const { data, error, isPending, isFetching, refetch } = useProducts(search);
+  const remove = useDeleteProduct();
+  const [conflict, setConflict] = useState(false);
+
+  function handleDelete(product: Product) {
+    // Deleting the only product of a page beyond the first shows the previous one.
+    const emptiesPage = data?.data.length === 1 && search.page > 1;
+    openDeleteConfirm(product, async () => {
+      try {
+        await remove.mutateAsync({ id: product.id, version: product.version });
+        notifySuccess(messages.feedback.deleted);
+        if (emptiesPage) {
+          setPage(search.page - 1, { replace: true });
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.code === "NOT_FOUND") {
+          notifyError(error, messages.feedback.alreadyDeleted);
+        } else if (
+          error instanceof ApiError &&
+          error.code === "VERSION_CONFLICT"
+        ) {
+          setConflict(true);
+        } else {
+          notifyError(error, deleteErrorText(error));
+        }
+      }
+    });
+  }
 
   let content;
   if (isPending) {
@@ -157,7 +186,9 @@ export function ProductListPage() {
       />
     );
   } else {
-    content = <Results list={data} controls={controls} />;
+    content = (
+      <Results list={data} controls={controls} onDelete={handleDelete} />
+    );
   }
 
   return (
@@ -183,6 +214,15 @@ export function ProductListPage() {
           onPriceRangeCancel={controls.cancelPriceRange}
         />
         <ResultsAnnouncer total={error ? undefined : data?.meta.total} />
+        {conflict && (
+          <ConflictAlert
+            reloading={isFetching}
+            onReload={() => {
+              setConflict(false);
+              void refetch();
+            }}
+          />
+        )}
         {content}
       </Stack>
     </Container>
