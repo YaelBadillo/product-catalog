@@ -286,29 +286,29 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T065 [P] [US2] Write repository tests in api/internal/repository/products_list_test.go:
+- [X] T065 [P] [US2] Write repository tests in api/internal/repository/products_list_test.go:
   - **Filters**: category, `is_active`, currency, and a price range (inclusive) combine.
   - **Search** (R2): partial match, ignoring case and accents (`cafe` → `Café molido`, `0123` → `CAF-0123`); `%`, `_` and `\` match literally.
   - **Sort**: by each field in both directions. Price groups MXN first, then USD. Name follows Spanish order (R1).
   - **Pagination**: ties never repeat or skip a product across pages; `total` respects the filters; a page beyond the last returns empty with the real `total`.
   - Rows with `deleted_at` set via SQL are excluded.
-- [ ] T066 [P] [US2] Write service tests in api/internal/service/products_list_test.go: `List` passes `ListParams` through and returns `ProductPage`; repository errors propagate
-- [ ] T067 [P] [US2] Write table-driven tests for `parseListParams` in api/internal/httpapi/handler/params_test.go:
+- [X] T066 [P] [US2] Write service tests in api/internal/service/products_list_test.go: `List` passes `ListParams` through and returns `ProductPage`; repository errors propagate
+- [X] T067 [P] [US2] Write table-driven tests for `parseListParams` in api/internal/httpapi/handler/params_test.go:
   - defaults;
   - invalid `page`, `page_size`, enums, `is_active` and prices → `FieldError` naming the parameter;
   - `min_price`/`max_price` without `currency` → an error on that parameter;
   - min > max;
   - `q` longer than 100 characters as received is an error; otherwise it's trimmed;
   - unknown parameters are ignored.
-- [ ] T068 [P] [US2] Write handler tests in api/internal/httpapi/products_list_test.go: `GET /api/v1/products` → 200 with `meta` (`page`, `page_size`, `total`, `total_pages`, which is 0 when `total` is 0) that matches the contract; the parameters reach the fake service; quickstart.md API scenarios 8, 9 and 12
-- [ ] T069 [P] [US2] Write tests in web/src/features/products/search-params.test.ts, per contracts/web-routes.md:
+- [X] T068 [P] [US2] Write handler tests in api/internal/httpapi/products_list_test.go: `GET /api/v1/products` → 200 with `meta` (`page`, `page_size`, `total`, `total_pages`, which is 0 when `total` is 0) that matches the contract; the parameters reach the fake service; quickstart.md API scenarios 8, 9 and 12
+- [X] T069 [P] [US2] Write tests in web/src/features/products/search-params.test.ts, per contracts/web-routes.md:
   - parsing with defaults;
   - sanitizing invalid values (FR-025);
   - the price range is dropped without a currency or when min > max;
   - `q` is trimmed and cut to 100;
   - serializing omits defaults;
   - `toListQuery` converts units to cents and sets `page_size: 20`.
-- [ ] T070 [P] [US2] Write tests in web/src/features/products/pages/ProductListPage.test.tsx (`renderRoute("/products?...")`), covering US2 scenarios 1 to 12:
+- [X] T070 [P] [US2] Write tests in web/src/features/products/pages/ProductListPage.test.tsx (`renderRoute("/products?...")`), covering US2 scenarios 1 to 12:
   - **Rows**: columns with Spanish labels and formatted price; a 120-character name is truncated visually but stays complete in its accessible name.
   - **Filters**: each one updates the URL and the request.
   - **Search**: applies after 300 ms or on Enter; Back returns to the view before the search.
@@ -321,24 +321,24 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### Implementation for User Story 2
 
-- [ ] T071 [US2] Write the `ListProducts` query (optional filters with `sqlc.narg`, `catalog_fold … LIKE … ESCAPE '\'`, the `CASE` sort with `currency` first for price and `id` as tiebreaker, `LIMIT`/`OFFSET`) and the `CountProducts` query (same `WHERE`) in api/queries/products.sql, then run `make sqlc` (R2, R3)
-- [ ] T072 [US2] Implement `List` in api/internal/repository/products.go: escape `\`, `%` and `_` in data-model.md ListParams.Query; run both queries in a read-only `REPEATABLE READ` transaction; map data-model.md ListParams.Sort and ListParams.Order to the query's parameters
-- [ ] T073 [US2] Implement `ListParams`, `SortField`, `SortOrder`, `ProductPage` and `List` in api/internal/service/products.go (add `List` to `ProductRepository`)
-- [ ] T074 [US2] Implement `parseListParams(url.Values)` in api/internal/httpapi/handler/params.go, per data-model.md ListParams.Page, ListParams.PageSize, ListParams.Category, ListParams.IsActive, ListParams.Currency, ListParams.MinPriceCents, ListParams.MaxPriceCents, ListParams.Query, ListParams.Sort and ListParams.Order (R9)
-- [ ] T075 [US2] Implement the `List` handler and the `ProductList`/`PageMeta` DTOs in api/internal/httpapi/handler/products.go and api/internal/httpapi/handler/dto.go (`total_pages = ceil(total / page_size)`), and add `GET /products` to `(*Products).Register`
-- [ ] T076 [P] [US2] Implement `parseCatalogSearch`, `serializeCatalogSearch` and `toListQuery` in web/src/features/products/search-params.ts, per data-model.md CatalogSearch.page, CatalogSearch.category, CatalogSearch.isActive, CatalogSearch.currency, CatalogSearch.minPrice, CatalogSearch.maxPrice, CatalogSearch.q, CatalogSearch.sort and CatalogSearch.order, and contracts/web-routes.md (R18)
-- [ ] T077 [US2] Implement `listProducts` in web/src/features/products/api.ts and `useProducts(search)` (`placeholderData: keepPreviousData`) in web/src/features/products/hooks.ts
-- [ ] T078 [US2] Implement `useCatalogSearch()` in web/src/features/products/use-catalog-search.ts:
+- [X] T071 [US2] Write the `ListProducts` query (optional filters with `sqlc.narg`, `catalog_fold … LIKE … ESCAPE '\'`, the `CASE` sort with `currency` first for price and `id` as tiebreaker, `LIMIT`/`OFFSET`) and the `CountProducts` query (same `WHERE`) in api/queries/products.sql, then run `make sqlc` (R2, R3)
+- [X] T072 [US2] Implement `List` in api/internal/repository/products.go: escape `\`, `%` and `_` in data-model.md ListParams.Query; run both queries in a read-only `REPEATABLE READ` transaction; map data-model.md ListParams.Sort and ListParams.Order to the query's parameters
+- [X] T073 [US2] Implement `ListParams`, `SortField`, `SortOrder`, `ProductPage` and `List` in api/internal/service/products.go (add `List` to `ProductRepository`)
+- [X] T074 [US2] Implement `parseListParams(url.Values)` in api/internal/httpapi/handler/params.go, per data-model.md ListParams.Page, ListParams.PageSize, ListParams.Category, ListParams.IsActive, ListParams.Currency, ListParams.MinPriceCents, ListParams.MaxPriceCents, ListParams.Query, ListParams.Sort and ListParams.Order (R9)
+- [X] T075 [US2] Implement the `List` handler and the `ProductList`/`PageMeta` DTOs in api/internal/httpapi/handler/products.go and api/internal/httpapi/handler/dto.go (`total_pages = ceil(total / page_size)`), and add `GET /products` to `(*Products).Register`
+- [X] T076 [P] [US2] Implement `parseCatalogSearch`, `serializeCatalogSearch` and `toListQuery` in web/src/features/products/search-params.ts, per data-model.md CatalogSearch.page, CatalogSearch.category, CatalogSearch.isActive, CatalogSearch.currency, CatalogSearch.minPrice, CatalogSearch.maxPrice, CatalogSearch.q, CatalogSearch.sort and CatalogSearch.order, and contracts/web-routes.md (R18)
+- [X] T077 [US2] Implement `listProducts` in web/src/features/products/api.ts and `useProducts(search)` (`placeholderData: keepPreviousData`) in web/src/features/products/hooks.ts
+- [X] T078 [US2] Implement `useCatalogSearch()` in web/src/features/products/use-catalog-search.ts:
   - URL state with `useSearchParams`;
   - filter, sort and page changes push a history entry, and filter and sort changes reset to page 1;
   - search uses `useDebouncedCallback` (300 ms) and pushes on the first update of a typing session, then replaces;
   - Enter applies immediately (R18).
-- [ ] T079 [P] [US2] Implement web/src/features/products/components/ProductFilters.tsx and web/src/features/products/components/ResultsAnnouncer.tsx (`aria-live="polite"`):
+- [X] T079 [P] [US2] Implement web/src/features/products/components/ProductFilters.tsx and web/src/features/products/components/ResultsAnnouncer.tsx (`aria-live="polite"`):
   - category, status and currency selects;
   - the search box;
   - the price range, disabled without a currency (with its hint) and with the min > max error.
-- [ ] T080 [P] [US2] Implement web/src/features/products/components/ProductTable.tsx (Mantine `Table`) and web/src/features/products/components/ProductCardList.tsx (stacked cards). Both show the same fields and Spanish labels, show status as text and icon, and link to the detail while preserving the catalog query (R23, C6).
-- [ ] T081 [US2] Implement web/src/features/products/pages/ProductListPage.tsx and register `/products` in web/src/app/routes.tsx:
+- [X] T080 [P] [US2] Implement web/src/features/products/components/ProductTable.tsx (Mantine `Table`) and web/src/features/products/components/ProductCardList.tsx (stacked cards). Both show the same fields and Spanish labels, show status as text and icon, and link to the detail while preserving the catalog query (R23, C6).
+- [X] T081 [US2] Implement web/src/features/products/pages/ProductListPage.tsx and register `/products` in web/src/app/routes.tsx:
   - `useMediaQuery("(min-width: 48em)")` picks table or cards;
   - `Pagination`;
   - every FR-026 state with `PageState`;
