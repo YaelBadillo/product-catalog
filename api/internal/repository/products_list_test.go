@@ -126,9 +126,19 @@ func TestListSort(t *testing.T) {
 	repo := newRepo(t)
 	seed(t, repo,
 		func(in *domain.ProductInput) { in.Name = "Zapato"; in.PriceCents = 300; in.Stock = 1 },
-		func(in *domain.ProductInput) { in.Name = "árbol"; in.PriceCents = 100; in.Stock = 3; in.Currency = domain.CurrencyUSD },
+		func(in *domain.ProductInput) {
+			in.Name = "árbol"
+			in.PriceCents = 100
+			in.Stock = 3
+			in.Currency = domain.CurrencyUSD
+		},
 		func(in *domain.ProductInput) { in.Name = "Arroz"; in.PriceCents = 200; in.Stock = 5 },
-		func(in *domain.ProductInput) { in.Name = "ñame"; in.PriceCents = 50; in.Stock = 2; in.Currency = domain.CurrencyUSD },
+		func(in *domain.ProductInput) {
+			in.Name = "ñame"
+			in.PriceCents = 50
+			in.Stock = 2
+			in.Currency = domain.CurrencyUSD
+		},
 		func(in *domain.ProductInput) { in.Name = "nuez"; in.PriceCents = 400; in.Stock = 4 },
 	)
 
@@ -163,7 +173,7 @@ func TestListPaginationNeverRepeatsOrSkips(t *testing.T) {
 	repo := newRepo(t)
 	mutations := make([]func(*domain.ProductInput), 25)
 	for i := range mutations {
-		mutations[i] = func(in *domain.ProductInput) { in.Name = fmt.Sprintf("Producto %02d", i) }
+		mutations[i] = func(in *domain.ProductInput) { in.Name = fmt.Sprintf("Item %02d", i) }
 	}
 	created := seed(t, repo, mutations...)
 	// Every product ties on stock, so only the id breaks ties.
