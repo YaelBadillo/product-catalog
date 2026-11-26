@@ -412,26 +412,26 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T095 [P] [US4] Write repository tests in api/internal/repository/products_delete_test.go:
+- [X] T095 [P] [US4] Write repository tests in api/internal/repository/products_delete_test.go:
   - `SoftDelete` sets `deleted_at` and `version` +1;
   - afterwards, `Get` → `ErrNotFound`, `List` excludes it, and `Create` with the same SKU succeeds;
   - a wrong version → `ErrVersionConflict`;
   - already deleted → `ErrNotFound`.
-- [ ] T096 [P] [US4] Write service tests in api/internal/service/products_delete_test.go: `Delete` passes `id` and `version` through, and errors propagate
-- [ ] T097 [P] [US4] Write handler tests in api/internal/httpapi/products_delete_test.go (contract-validated). Cases are quickstart.md API scenarios 18 to 20:
+- [X] T096 [P] [US4] Write service tests in api/internal/service/products_delete_test.go: `Delete` passes `id` and `version` through, and errors propagate
+- [X] T097 [P] [US4] Write handler tests in api/internal/httpapi/products_delete_test.go (contract-validated). Cases are quickstart.md API scenarios 18 to 20:
   - `DELETE ?version=N` → 204;
   - a missing or non-numeric `version` → 400;
   - an invalid UUID → 400;
   - 404;
   - 409.
-- [ ] T098 [P] [US4] Write tests in web/src/features/products/pages/ProductListPage.delete.test.tsx, covering US4 scenarios 1 to 3 and 5 to 8:
+- [X] T098 [P] [US4] Write tests in web/src/features/products/pages/ProductListPage.delete.test.tsx, covering US4 scenarios 1 to 3 and 5 to 8:
   - **Confirmation**: "¿Eliminar producto?" with the name and SKU. Cancel sends no request and returns focus to the row's delete button (FR-040).
   - **Confirm**: the row disappears immediately, then "Producto eliminado". The confirm button is disabled while the request is pending (FR-039).
   - **Errors**: a 500 brings the row back with "No se pudo eliminar el producto. Inténtalo de nuevo.". A 409 keeps the row and shows `ConflictAlert`. A 404 removes the row with "Este producto ya no existe".
   - **Last page**: deleting the only product on it navigates to the previous page.
   - **Request**: `DELETE` sends the `version` from the list.
   - `axe` with the modal open.
-- [ ] T099 [P] [US4] Write tests in web/src/features/products/pages/ProductDetailPage.delete.test.tsx, covering US4 scenario 4:
+- [X] T099 [P] [US4] Write tests in web/src/features/products/pages/ProductDetailPage.delete.test.tsx, covering US4 scenario 4:
   - success → `/products` with "Producto eliminado";
   - the delete action is disabled while the request is pending (FR-039);
   - failure → stays with the notice;
@@ -440,21 +440,21 @@ Monorepo from plan.md: API in `api/` (Go, `handler → service → repository`),
 
 ### Implementation for User Story 4
 
-- [ ] T100 [US4] Write the `SoftDeleteProduct` query (`deleted_at = now()`, `version + 1`, `WHERE id AND version AND deleted_at IS NULL`) in api/queries/products.sql and run `make sqlc`
-- [ ] T101 [US4] Implement `Delete` in api/internal/repository/products.go (0 rows → `ProductExists` → `ErrNotFound` or `ErrVersionConflict`), per data-model.md Product.deleted_at and Product.version
-- [ ] T102 [US4] Implement `Delete` in api/internal/service/products.go and add it to `ProductRepository`
-- [ ] T103 [US4] Implement the `Delete` handler in api/internal/httpapi/handler/products.go (parse the `version` query parameter into a `RequestError` field `version`, per data-model.md Product.version) and add `DELETE /products/:id` to `(*Products).Register`
-- [ ] T104 [US4] Implement `deleteProduct` in web/src/features/products/api.ts and `useDeleteProduct` in web/src/features/products/hooks.ts:
+- [X] T100 [US4] Write the `SoftDeleteProduct` query (`deleted_at = now()`, `version + 1`, `WHERE id AND version AND deleted_at IS NULL`) in api/queries/products.sql and run `make sqlc`
+- [X] T101 [US4] Implement `Delete` in api/internal/repository/products.go (0 rows → `ProductExists` → `ErrNotFound` or `ErrVersionConflict`), per data-model.md Product.deleted_at and Product.version
+- [X] T102 [US4] Implement `Delete` in api/internal/service/products.go and add it to `ProductRepository`
+- [X] T103 [US4] Implement the `Delete` handler in api/internal/httpapi/handler/products.go (parse the `version` query parameter into a `RequestError` field `version`, per data-model.md Product.version) and add `DELETE /products/:id` to `(*Products).Register`
+- [X] T104 [US4] Implement `deleteProduct` in web/src/features/products/api.ts and `useDeleteProduct` in web/src/features/products/hooks.ts:
   - optimistic removal from every cached `list` that contains the product, with a snapshot and rollback on error;
   - invalidate `lists()` on settle;
   - remove `detail(id)` on success (R20).
-- [ ] T105 [P] [US4] Implement `openDeleteConfirm(product, onConfirm)` in web/src/features/products/components/delete-confirm.tsx: `modals.openConfirmModal` with the FR-046 texts, confirm button `color="red.9"` and cancel "Cancelar"
-- [ ] T106 [US4] Add the delete action to ProductTable.tsx and ProductCardList.tsx, and handle in web/src/features/products/pages/ProductListPage.tsx:
+- [X] T105 [P] [US4] Implement `openDeleteConfirm(product, onConfirm)` in web/src/features/products/components/delete-confirm.tsx: `modals.openConfirmModal` with the FR-046 texts, confirm button `color="red.9"` and cancel "Cancelar"
+- [X] T106 [US4] Add the delete action to ProductTable.tsx and ProductCardList.tsx, and handle in web/src/features/products/pages/ProductListPage.tsx:
   - notifications;
   - `ConflictAlert` on 409;
   - the 404 notice;
   - navigation to `total_pages` when the last page empties.
-- [ ] T107 [US4] Add the delete action to web/src/features/products/pages/ProductDetailPage.tsx: success → `/products` with the notification; 409 → `ConflictAlert`; 404 → the notice and the catalog
+- [X] T107 [US4] Add the delete action to web/src/features/products/pages/ProductDetailPage.tsx: success → `/products` with the notification; 409 → `ConflictAlert`; 404 → the notice and the catalog
 
 **Checkpoint**: All four stories work on their own.
 
