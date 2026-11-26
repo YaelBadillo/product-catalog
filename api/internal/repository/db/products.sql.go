@@ -217,6 +217,26 @@ func (q *Queries) ProductExists(ctx context.Context, id string) (bool, error) {
 	return exists, err
 }
 
+const softDeleteProduct = `-- name: SoftDeleteProduct :execrows
+UPDATE products SET deleted_at = now(), version = version + 1
+WHERE id = $1 AND version = $2 AND deleted_at IS NULL
+`
+
+type SoftDeleteProductParams struct {
+	ID      string
+	Version int32
+}
+
+// Logical deletion, only if the version still matches. The row stays, but no
+// query returns it again and its SKU is free.
+func (q *Queries) SoftDeleteProduct(ctx context.Context, arg SoftDeleteProductParams) (int64, error) {
+	result, err := q.db.Exec(ctx, softDeleteProduct, arg.ID, arg.Version)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const updateProduct = `-- name: UpdateProduct :one
 UPDATE products SET
     name        = COALESCE($1::text, name),

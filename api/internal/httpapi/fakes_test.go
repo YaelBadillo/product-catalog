@@ -26,6 +26,7 @@ type fakeService struct {
 	get    func(id string) (domain.Product, error)
 	list   func(service.ListParams) (service.ProductPage, error)
 	update func(id string, p domain.ProductPatch) (domain.Product, error)
+	remove func(id string, version int32) error
 
 	createdWith []domain.ProductInput
 }
@@ -57,6 +58,13 @@ func (f *fakeService) Update(_ context.Context, id string, p domain.ProductPatch
 		return domain.Product{}, errNotStubbed
 	}
 	return f.update(id, p)
+}
+
+func (f *fakeService) Delete(_ context.Context, id string, version int32) error {
+	if f.remove == nil {
+		return errNotStubbed
+	}
+	return f.remove(id, version)
 }
 
 const productID = "0193a5b0-7c1e-7000-8000-000000000001"

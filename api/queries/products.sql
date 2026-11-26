@@ -66,3 +66,9 @@ RETURNING *;
 
 -- name: ProductExists :one
 SELECT EXISTS (SELECT 1 FROM products WHERE id = @id AND deleted_at IS NULL);
+
+-- name: SoftDeleteProduct :execrows
+-- Logical deletion, only if the version still matches. The row stays, but no
+-- query returns it again and its SKU is free.
+UPDATE products SET deleted_at = now(), version = version + 1
+WHERE id = @id AND version = @version AND deleted_at IS NULL;

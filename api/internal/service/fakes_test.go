@@ -17,6 +17,14 @@ type fakeRepo struct {
 	get     func(id string) (domain.Product, error)
 	list    func(service.ListParams) (service.ProductPage, error)
 	update  func(id string, p domain.ProductPatch) (domain.Product, error)
+	remove  func(id string, version int32) error
+}
+
+func (f *fakeRepo) Delete(_ context.Context, id string, version int32) error {
+	if f.remove == nil {
+		return errUnexpected
+	}
+	return f.remove(id, version)
 }
 
 func (f *fakeRepo) Update(_ context.Context, id string, p domain.ProductPatch) (domain.Product, error) {

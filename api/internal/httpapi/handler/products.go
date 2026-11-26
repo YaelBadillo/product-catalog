@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -22,6 +23,7 @@ type ProductService interface {
 	Get(ctx context.Context, id string) (domain.Product, error)
 	List(ctx context.Context, p service.ListParams) (service.ProductPage, error)
 	Update(ctx context.Context, id string, patch domain.ProductPatch) (domain.Product, error)
+	Delete(ctx context.Context, id string, version int32) error
 }
 
 // Products serves the /products routes.
@@ -41,6 +43,7 @@ func (h *Products) Register(g *gin.RouterGroup) {
 	g.POST("/products", h.Create)
 	g.GET("/products/:id", h.Get)
 	g.PATCH("/products/:id", h.Update)
+	g.DELETE("/products/:id", h.Delete)
 }
 
 // List handles GET /products: one page and its meta.
@@ -105,6 +108,24 @@ func (h *Products) Update(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, toResponse(product))
+}
+
+// Delete handles DELETE /products/:id?version=N: 204 on success.
+func (h *Products) Delete(c *gin.Context) {
+	id, ok := pathID(c)
+	if !ok {
+		return
+	}
+	version, err := strconv.ParseInt(c.Query("version"), 10, 32)
+	if err != nil || version < 1 {
+		_ = c.Error(&RequestError{Field: "version", Message: "must be a whole number of at least 1"})
+		return
+	}
+	if err := h.svc.Delete(c.Request.Context(), id, int32(version)); err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 // pathID returns the :id parameter, or reports a RequestError if it is not a
